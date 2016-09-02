@@ -1,24 +1,155 @@
 # -*- coding: utf-8 -*-
 """
 @author: Laurent P. René de Cotret
-
-References
-----------
-[1] An Iterative Algorithm for Background Removal in Spectroscopy by 
-    Wavelet Transforms. Galloway, Le Ru and Etchegoin
 """
 import numpy as n
 import pywt
 from warnings import warn
 
-__all__ = ['approx_rec', 'baseline', 'denoise']
+__all__ = ['baseline', 'denoise', 'enhance']
 
-# Boundary extension mode
 EXTENSION_MODE = 'constant'
+
+
+def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
+    """
+    Iterative method of baseline determination modified from [1]. This function handles
+    both 1D curves and 2D images.
+    
+    Parameters
+    ----------
+    array : ndarray, shape (M,N)
+        Data with background. Can be either 1D signal or 2D array.
+    max_iter : int
+        Number of iterations to perform.
+    level : int or None, optional
+        Decomposition level. A higher level will result in a coarser approximation of
+        the input signal (read: a lower frequency baseline). If None (default), the maximum level
+        possible is used.
+    wavelet : PyWavelet.Wavelet object or str, optional
+        Wavelet with which to perform the algorithm. See PyWavelet documentation
+        for available values. Default is 'sym6'.
+    background_regions : list, optional
+        Indices of the array values that are known to be purely background. Depending
+        on the dimensions of array, the format is different:
+        
+        ``array.ndim == 1``
+          background_regions is a list of ints (indices) or slices
+          E.g. >>> background_regions = [0, 7, 122, slice(534, 1000)]
+          
+        ``array.ndim == 2``
+          background_regions is a list of tuples of ints (indices) or tuples of slices
+          E.g. >>> background_regions = [(14, 19), (42, 99), (slice(59, 82), slice(81,23))]
+         
+        Default is empty list.
+    
+    mask : ndarray, dtype bool, optional
+        Mask array that evaluates to True for pixels that are invalid. Useful to determine which pixels are masked
+        by a beam block.
+    
+    Returns
+    -------
+    baseline : ndarray, shape (M,N)
+        Baseline of the input array.
+    
+    Raises
+    ------
+    ValueError
+        If input array is neither 1D nor 2D.
+
+    References
+    ----------
+    [1] An Iterative Algorithm for Background Removal in Spectroscopy by 
+        Wavelet Transforms. Galloway, Le Ru and Etchegoin
+    """
+    array = n.asarray(array, dtype = n.float)
+    if mask is None:
+        mask = n.zeros_like(array, dtype = n.bool)
+    
+    signal = n.copy(array)
+    background = n.zeros_like(array, dtype = n.float)
+    for i in range(max_iter):
+        
+        # Make sure the background values are equal to the original signal values in the
+        # background regions
+        for index in background_regions:
+            signal[index] = array[index]
+        
+        # Wavelet reconstruction using approximation coefficients
+        background = approx_rec(array = signal, level = level, wavelet = wavelet, mask = mask)
+        
+        # Modify the signal so it cannot be more than the background
+        # This reduces the influence of the peaks in the wavelet decomposition
+        signal[signal > background] = background[signal > background]
+    
+    # The background should be identically 0 where the data points are invalid
+    background[mask] = 0  
+    return background
+
+
+def denoise(array, level = 1, wavelet = 'db5', mask = None):
+    """
+    Denoise an array using the wavelet transform.
+    
+    Parameters
+    ----------
+    array : ndarray, shape (M,N)
+        Data with background. Can be either 1D signal or 2D array.
+    level : int, optional
+        Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
+    wavelet : PyWavelet.Wavelet object or str, optional
+        Wavelet with which to perform the algorithm. See PyWavelet documentation
+        for available values. Default is 'db5'.
+    
+    Returns
+    -------
+    denoised : ndarray, shape (M,N)
+
+    Raises
+    ------    
+    ValueError
+        If input array has dimension > 2
+    """
+    if mask is None:
+        mask = n.zeros_like(array, dtype = n.bool)
+
+    return approx_rec(array = array, level = level, wavelet = wavelet, mask = mask)
+
+
+def enhance(array, level = 1, wavelet = 'db5', mask = None):
+    """
+    Enhance an array by denoising and removing background.
+
+    Parameters
+    ----------
+    array : ndarray, shape (M,N)
+        Data with background. Can be either 1D signal or 2D array.
+    level : int, optional
+        Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
+    wavelet : PyWavelet.Wavelet object or str, optional
+        Wavelet with which to perform the algorithm. See PyWavelet documentation
+        for available values. Default is 'db5'.
+    mask : ndarray, dtype bool, optional
+        Evaluates to True on array values that are invalid.
+
+    Returns
+    -------
+    enhanced : ndarray, shape (M,N)
+
+    Raises
+    ------    
+    ValueError
+        If input array has dimension > 2
+    """
+    if mask is None:
+        mask = n.zeros_like(array, dtype = n.bool)
+    
+    return denoise(array, level = level, wavelet = wavelet, mask = mask) - baseline(array, max_iter = 50, level = None, wavelet = wavelet, mask = mask)
+
 
 def approx_rec(array, level, wavelet, mask = None):
     """
-    Approximate reconstruction of a signal/image. Uses the multilevel discrete wavelet 
+    Approximate reconstruction of a signal/image. Uses the multi-level discrete wavelet 
     transform to decompose a signal or an image, and reconstruct it using approximate 
     coefficients only.
     
@@ -26,7 +157,6 @@ def approx_rec(array, level, wavelet, mask = None):
     ----------
     array : array-like
         Array to be decomposed. Currently, only 1D and 2D arrays are supported.
-        nD support is on the way.
     level : int or 'max' or None (deprecated)
         Decomposition level. A higher level will result in a coarser approximation of
         the input array. If the level is higher than the maximum possible decomposition level,
@@ -44,7 +174,7 @@ def approx_rec(array, level, wavelet, mask = None):
     
     Raises
     ------    
-    NotImplementedError
+    ValueError
         If input array has dimension > 2 
     """
     array = n.asarray(array, dtype = n.float)
@@ -54,7 +184,7 @@ def approx_rec(array, level, wavelet, mask = None):
     # TODO: dim > 2
     dim = array.ndim
     if dim > 2:
-        raise NotImplementedError
+        raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
     func_dict = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}
     dec_func, rec_func = func_dict[dim]
 
@@ -109,131 +239,3 @@ def approx_rec(array, level, wavelet, mask = None):
         elif dim == 2:
             extended_reconstructed[:reconstructed.shape[0], :reconstructed.shape[1]] = reconstructed
         return extended_reconstructed
-
-
-def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
-    """
-    Iterative method of baseline determination modified from [1]. This function handles
-    both 1D curves and 2D images.
-    
-    Parameters
-    ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
-    max_iter : int
-        Number of iterations to perform.
-    level : int or None, optional
-        Decomposition level. A higher level will result in a coarser approximation of
-        the input signal (read: a lower frequency baseline). If None (default), the maximum level
-        possible is used.
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'sym6'.
-    background_regions : list, optional
-        Indices of the array values that are known to be purely background. Depending
-        on the dimensions of array, the format is different:
-        
-        ``array.ndim == 1``
-          background_regions is a list of ints (indices) or slices
-          E.g. >>> background_regions = [0, 7, 122, slice(534, 1000)]
-          
-        ``array.ndim == 2``
-          background_regions is a list of tuples of ints (indices) or tuples of slices
-          E.g. >>> background_regions = [(14, 19), (42, 99), (slice(59, 82), slice(81,23))]
-         
-        Default is empty list.
-    
-    mask : ndarray, dtype bool, optional
-        Mask array that evaluates to True for pixels that are invalid. Useful to determine which pixels are masked
-        by a beam block.
-    
-    Returns
-    -------
-    baseline : ndarray, shape (M,N)
-        Baseline of the input array.
-    
-    Raises
-    ------
-    NotImplementedError
-        If input array is neither 1D nor 2D. Inherited behavior from approx_rec.
-    """
-    array = n.asarray(array, dtype = n.float)
-    if mask is None:
-        mask = n.zeros_like(array, dtype = n.bool)
-    
-    signal = n.copy(array)
-    background = n.zeros_like(array, dtype = n.float)
-    for i in range(max_iter):
-        
-        # Make sure the background values are equal to the original signal values in the
-        # background regions
-        for index in background_regions:
-            signal[index] = array[index]
-        
-        # Wavelet reconstruction using approximation coefficients
-        background = approx_rec(array = signal, level = level, wavelet = wavelet, mask = mask)
-        
-        # Modify the signal so it cannot be more than the background
-        # This reduces the influence of the peaks in the wavelet decomposition
-        signal[signal > background] = background[signal > background]
-    
-    # The background should be identically 0 where the data points are invalid
-    background[mask] = 0  
-    return background
-    
-def denoise(array, level = 1, wavelet = 'db5', mask = None):
-    """
-    Denoise an array using the wavelet transform.
-    
-    Parameters
-    ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
-    level : int, optional
-        Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'db5'.
-    
-    Returns
-    -------
-    out : ndarray, shape (M,N)
-    """
-    if mask is None:
-        mask = n.zeros_like(array, dtype = n.bool)
-
-    return approx_rec(array = array, level = level, wavelet = wavelet, mask = mask)
-
-def enhance(array, level = 1, wavelet = 'db5', mask = None):
-    """
-    Enhance an array by denoising and removing background.
-
-    Parameters
-    ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
-    level : int, optional
-        Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'db5'.
-    mask : ndarray, dtype bool, optional
-        Evaluates to True on array values that are invalid.
-
-    Returns
-    -------
-    enhanced : ndarray, shape (M,N)
-    """
-    if mask is None:
-        mask = n.zeros_like(array, dtype = n.bool)
-    
-    return denoise(array, level = level, wavelet = wavelet, mask = mask) - baseline(array, max_iter = 50, level = None, wavelet = wavelet, mask = mask)
-    
-if __name__ == '__main__':
-    from iris import dataset
-    import matplotlib.pyplot as plt
-    directory = 'K:\\2012.11.09.19.05.VO2.270uJ.50Hz.70nm'
-    d = dataset.PowderDiffractionDataset(directory)  
-    signal = d.pattern(0.0).data
-    bg1 = baseline(signal, 1000, wavelet = 'sym6')
-    plt.plot(signal, 'b', bg1, 'r')
