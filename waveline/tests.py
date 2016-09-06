@@ -33,13 +33,13 @@ class TestEdgeCases2D(Test2D, TestEdgeCases): pass
 class TestTrivial(object):
 
     def test_baseline(self):
-        self.assertTrue(n.sum(self.array - baseline(self.array, max_iter = 10)) == 0)
+        self.assertTrue(n.allclose(self.array, baseline(self.array, max_iter = 10)))
 
     def test_denoise(self):
-        self.assertTrue(n.sum(self.array - denoise(self.array)) == 0)
+        self.assertTrue(n.allclose(self.array, denoise(self.array)))
     
     def test_enhance(self):
-        self.assertTrue(n.sum(self.array - enhance(self.array)) == 0)
+        self.assertTrue(n.allclose(self.array, enhance(self.array)))
 
 class TestTrivial1D(Test1D, TestTrivial): pass
 
@@ -51,7 +51,7 @@ class TestDenoise(object):
 
     def test_random(self):
         noisy = self.array + 0.05*n.random.random(size = self.array.shape)
-        self.assertTrue(n.allclose(self.array, denoise( noisy, level = 2, wavelet = 'db5' ), atol = 0.001)) # 50x noise reduction
+        self.assertTrue(n.allclose(self.array, denoise( noisy, level = 'max', wavelet = 'db1' ), atol = 0.05))
 
 class TestDenoise1D(Test1D, TestDenoise): pass
 

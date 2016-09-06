@@ -9,6 +9,35 @@ from warnings import warn
 __all__ = ['baseline', 'denoise', 'enhance']
 
 EXTENSION_MODE = 'constant'
+FUNC_DICT = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}    # Decomposition and recomposition functions based on dimensionality
+
+#####################################################################################################
+###             EXTENSION OF PYWT TO DUAL-TREE COMPLEX WAVELET TRANSFORM
+#####################################################################################################
+
+def dtcwt(data, wavelet, mode = 'symmetric', axis = -1):
+    """
+    Single level dual-tree complex wavelet transform.
+
+    Parameters
+    ----------
+    data : array_like
+        Input signal
+    wavelet : Wavelet object or name
+        Wavelet to use
+    mode : str, optional
+        Signal extension mode, see Modes
+    axis: int, optional
+        Axis over which to compute the DWT. If not given, the
+        last axis is used.
+
+    Returns
+    -------
+    (rA, rD, iA, iD) : tuple of ndarrays
+        real and imaginary Approximate and Detail coefficients.
+    """
+    # TODO: check that the wavelet is a complex wavelet of the right form.
+    if 
 
 
 def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
@@ -56,11 +85,6 @@ def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_region
     ------
     ValueError
         If input array is neither 1D nor 2D.
-
-    References
-    ----------
-    [1] An Iterative Algorithm for Background Removal in Spectroscopy by 
-        Wavelet Transforms. Galloway, Le Ru and Etchegoin
     """
     array = n.asarray(array, dtype = n.float)
     if mask is None:
@@ -87,7 +111,7 @@ def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_region
     return background
 
 
-def denoise(array, level = 1, wavelet = 'db5', mask = None):
+def denoise(array, level = 2, wavelet = 'db5', mask = None):
     """
     Denoise an array using the wavelet transform.
     
@@ -116,9 +140,9 @@ def denoise(array, level = 1, wavelet = 'db5', mask = None):
     return approx_rec(array = array, level = level, wavelet = wavelet, mask = mask)
 
 
-def enhance(array, level = 1, wavelet = 'db5', mask = None):
+def enhance(array, level = 2, wavelet = 'db5', mask = None):
     """
-    Enhance an array by denoising and removing background.
+    Enhance an array by denoising and removing baseline.
 
     Parameters
     ----------
@@ -181,12 +205,11 @@ def approx_rec(array, level, wavelet, mask = None):
     original_array = n.copy(array)
     
     # Choose deconstruction and reconstruction functions based on dimensionality
-    # TODO: dim > 2
     dim = array.ndim
     if dim > 2:
         raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
     func_dict = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}
-    dec_func, rec_func = func_dict[dim]
+    dec_func, rec_func = FUNC_DICT[dim]
 
     # Build Wavelet object
     if isinstance(wavelet, str):
