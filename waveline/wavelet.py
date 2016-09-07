@@ -11,35 +11,6 @@ __all__ = ['baseline', 'denoise', 'enhance']
 EXTENSION_MODE = 'constant'
 FUNC_DICT = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}    # Decomposition and recomposition functions based on dimensionality
 
-#####################################################################################################
-###             EXTENSION OF PYWT TO DUAL-TREE COMPLEX WAVELET TRANSFORM
-#####################################################################################################
-
-def dtcwt(data, wavelet, mode = 'symmetric', axis = -1):
-    """
-    Single level dual-tree complex wavelet transform.
-
-    Parameters
-    ----------
-    data : array_like
-        Input signal
-    wavelet : Wavelet object or name
-        Wavelet to use
-    mode : str, optional
-        Signal extension mode, see Modes
-    axis: int, optional
-        Axis over which to compute the DWT. If not given, the
-        last axis is used.
-
-    Returns
-    -------
-    (rA, rD, iA, iD) : tuple of ndarrays
-        real and imaginary Approximate and Detail coefficients.
-    """
-    # TODO: check that the wavelet is a complex wavelet of the right form.
-    if 
-
-
 def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
     """
     Iterative method of baseline determination modified from [1]. This function handles

@@ -1,9 +1,48 @@
 
-from iris.wavelet import approx_rec, baseline, denoise, enhance
+from wavelet import approx_rec, baseline, denoise, enhance
+from dualtree import dtanalysis, dtsynthesis, dt_approx_rec
+from dtwavelets import dualtree_wavelet, qshift, ALL_QSHIFT
+import matplotlib.pyplot as plt
 import numpy as n
+import pywt
 import unittest
 
 n.random.seed(23)
+
+##############################################################################
+###           DUAL-TREE COMPLEX WAVELET TRANSFORM
+##############################################################################
+
+class TestComplexWavelets(unittest.TestCase):
+
+    def test_qshift(self):
+        for name in ALL_QSHIFT:
+            wavelets = qshift(name)
+
+class TestDualTree(unittest.TestCase):
+    
+    #@unittest.expectedFailure
+    def test_perfect_reconstruction_multilevel(self):
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        coeffs = dtanalysis(data = array, level = 3)
+        reconstructed = dtsynthesis(coeffs = coeffs)
+        self.assertTrue(n.allclose(array, reconstructed))
+    
+    def test_perfect_reconstruction_max_level(self):
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        coeffs = dtanalysis(data = array, level = 'max')
+        reconstructed = dtsynthesis(coeffs = coeffs)
+        self.assertTrue(n.allclose(array, reconstructed))
+    
+    def test_dt_approx_rec(self):
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        test = dt_approx_rec(array = array, level = 'max', first_stage = 'bior5.5')
+        self.assertTrue(array.size == test.size)
+
+
+##############################################################################
+###           BASELINE AND COMPANY
+##############################################################################
 
 class Test2D(unittest.TestCase):
     def setUp(self):
