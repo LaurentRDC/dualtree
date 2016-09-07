@@ -1,7 +1,7 @@
 
-from wavelet import approx_rec, baseline, denoise, enhance
-from dualtree import dtanalysis, dtsynthesis, dt_approx_rec
-from dtwavelets import dualtree_wavelet, qshift, ALL_QSHIFT
+from discrete import approx_rec, baseline, denoise, enhance
+from dualtree import dtanalysis, dtsynthesis, dt_approx_rec, dt_first_stage
+from wavelets import dualtree_wavelet, qshift, ALL_QSHIFT
 import matplotlib.pyplot as plt
 import numpy as n
 import pywt
@@ -18,10 +18,23 @@ class TestComplexWavelets(unittest.TestCase):
     def test_qshift(self):
         for name in ALL_QSHIFT:
             wavelets = qshift(name)
+    
+    def test_first_stage(self):
+        """ Test of the 1 sample shift """
+        wav1, wav2 = dt_first_stage('db5')
+        self.assertTrue(n.allclose(wav1.dec_lo[:-1], wav2.dec_lo[1:]))
+        self.assertTrue(n.allclose(wav1.dec_hi[:-1], wav2.dec_hi[1:]))
+        self.assertTrue(n.allclose(wav1.rec_lo[:-1], wav2.rec_lo[1:]))
+        self.assertTrue(n.allclose(wav1.rec_hi[:-1], wav2.rec_hi[1:]))
 
 class TestDualTree(unittest.TestCase):
     
-    #@unittest.expectedFailure
+    def test_perfect_reconstruction_level_1(self):
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        coeffs = dtanalysis(data = array, level = 1)
+        reconstructed = dtsynthesis(coeffs = coeffs)
+        self.assertTrue(n.allclose(array, reconstructed))
+
     def test_perfect_reconstruction_multilevel(self):
         array = n.sin(n.arange(0, 10, step = 0.01))
         coeffs = dtanalysis(data = array, level = 3)

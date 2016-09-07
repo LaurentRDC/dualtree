@@ -206,8 +206,9 @@ def approx_rec(array, level, wavelet, mask = None):
     # The structure of coefficients depends on the dimensionality
     zeroed = list()
     if dim == 1:
-        for detail in det_coeffs:
-            zeroed.append( n.zeros_like(detail) )
+        zeroed = [None,]*len(det_coeffs)
+        #for detail in det_coeffs:
+        #    zeroed.append( n.zeros_like(detail) )
     elif dim == 2:
         for detail_tuples in det_coeffs:
             cHn, cVn, cDn = detail_tuples       # See PyWavelet.wavedec2 documentation for coefficients structure.

@@ -5,7 +5,7 @@ from warnings import warn
 
 __all__ = ['dtanalysis', 'dtsynthesis', 'dt_max_level', 'dt_approx_rec', 'dt_baseline']
 
-EXTENSION_MODE = 'constant'
+EXTENSION_MODE = 'symmetric'
 
 def dt_baseline(array, max_iter, level = 'max', first_stage = 'bior5.5', wavelet = 'qshift_a', background_regions = [], mask = None):
     """
@@ -137,8 +137,8 @@ def dt_approx_rec(array, level, first_stage = 'bior5.5', wavelet = 'qshift_a', m
     # The structure of coefficients depends on the dimensionality
     zeroed = list()
     if dim == 1:
-        for detail in det_coeffs:
-            zeroed.append( n.zeros_like(detail, dtype = n.complex) )
+        for det in det_coeffs:
+            zeroed.append(n.zeros_like(det))
     elif dim == 2:
         for detail_tuples in det_coeffs:
             cHn, cVn, cDn = detail_tuples       # See PyWavelet.wavedec2 documentation for coefficients structure.
@@ -191,6 +191,29 @@ def dt_max_level(data, first_stage, wavelet):
     return dwt_max_level(data_len = min(data.shape),
                          filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len, first_stage.dec_len]))
 
+def dt_first_stage(wavelet):
+    """
+    Returns two wavelets to be used in the dual-tree complex wavelet transform, at the first stage.
+
+    Parameters
+    ----------
+    wavelet : str or Wavelet
+
+    Return
+    ------
+    wav1, wav2 : Wavelet objects
+    """
+    if not isinstance(wavelet, Wavelet):
+        wavelet = Wavelet(wavelet)
+    
+    dec_lo, dec_hi, rec_lo, rec_hi = wavelet.filter_bank
+
+    for bank in (dec_lo, dec_hi, rec_lo, rec_hi):
+        bank[1:], bank[0] = bank[:-1], 0 #bank[-1]  #Shift by one index
+    wav2 = Wavelet(name = wavelet.name, filter_bank = [dec_lo, dec_hi, rec_lo, rec_hi])
+    
+    return wavelet, wav2
+
 #TODO: extend to 2D
 def dtanalysis(data, first_stage = 'bior5.5', wavelet = 'qshift_a', level = 'max', mode = 'symmetric'):
     """
@@ -222,6 +245,8 @@ def dtanalysis(data, first_stage = 'bior5.5', wavelet = 'qshift_a', level = 'max
     data = n.asarray(data)
 
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
+    real_first, imag_first = dt_first_stage(first_stage)
+
     if not isinstance(first_stage, Wavelet):
         first_stage = Wavelet(first_stage)
 
@@ -231,21 +256,15 @@ def dtanalysis(data, first_stage = 'bior5.5', wavelet = 'qshift_a', level = 'max
         raise ValueError('Invalid level value {}. Must be a nonnegative integer.'.format(level))
     elif level == 0:
         return data
-    elif level == 1:
-        return dwt(data = data, wavelet = first_stage, mode = mode)
 
-    # First stage:
-    a, d = dwt(data = data, wavelet = first_stage, mode = mode)
-
-    #parallel trees: real and imag
-    real_coeffs = wavedec(data = a, wavelet = real_wavelet, mode = mode, level = level - 1)
-    imag_coeffs = wavedec(data = a, wavelet = imag_wavelet, mode = mode, level = level - 1)
+    #Separate computation trees
+    real_coeffs = _dt_analysis_tree(data = data, first_stage = real_first, wavelet = real_wavelet, level = level, mode = mode)
+    imag_coeffs = _dt_analysis_tree(data = data, first_stage = imag_first, wavelet = imag_wavelet, level = level, mode = mode)
 
     # Combine coefficients into complex form
     coeffs_list = list()
     for real, imag in zip(real_coeffs, imag_coeffs):
         coeffs_list.append(real + 1j*imag)
-    coeffs_list.append(d)   # From first stage
     return coeffs_list
 
 def dtsynthesis(coeffs, first_stage = 'bior5.5', wavelet = 'qshift_a', mode = 'symmetric'):
@@ -273,42 +292,42 @@ def dtsynthesis(coeffs, first_stage = 'bior5.5', wavelet = 'qshift_a', mode = 's
     ValueError 
         If the input coefficients are too few / not 
     """
+
+    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
+    real_first, imag_first = dt_first_stage(first_stage)
+
     if len(coeffs) < 1:
         raise ValueError(
             "Coefficient list too short (minimum 1 array required).")
     elif len(coeffs) == 1: # level 0 transform
         return coeffs[0]
-    elif len(coeffs) == 2: # Level 1 transform: first stage only
-        a, d = coeffs
-        return idwt(cA = a, cD = d, wavelet = first_stage, mode = mode)
 
     # Parallel trees:
-    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    real_coeffs = [n.real(coeff) for coeff in coeffs[:-1]]  # Last coeff is reserved for first stage
-    imag_coeffs = [n.imag(coeff) for coeff in coeffs[:-1]]
-    real_synt = waverec(coeffs = real_coeffs, wavelet = real_wavelet, mode = mode)
-    imag_synt = waverec(coeffs = imag_coeffs, wavelet = imag_wavelet, mode = mode)
+    real_coeffs = [n.real(coeff) for coeff in coeffs]  # Last coeff is reserved for first stage
+    imag_coeffs = [n.imag(coeff) for coeff in coeffs]
 
-    # First stage
-    d = coeffs[-1]
-    if len(real_synt) == len(d) + 1:
-        real_synt = real_synt[:-1]
-    if len(imag_synt == len(d)) + 1:
-        imag_synt = imag_synt[:-1]
+    real = _dt_synthesis_tree(coeffs = real_coeffs, first_stage = real_first, wavelet = real_wavelet, mode = mode)
+    imag = _dt_synthesis_tree(coeffs = imag_coeffs, first_stage = imag_first, wavelet = imag_wavelet, mode = mode)
     
-    real = idwt(cA = real_synt, cD = d, wavelet = first_stage, mode = mode)
-    imag = idwt(cA = imag_synt, cD = coeffs[-1], wavelet = first_stage, mode = mode)
     return 0.5*(real + imag)
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from discrete import approx_rec, baseline
+def _dt_analysis_tree(data, first_stage, wavelet, level, mode):
+    """
+    Abstraction of the dual-tree cwt into a single tree.
+    """
+    approx, detail = dwt(data = data, wavelet = first_stage, mode = mode)
+    coeffs = wavedec(data = approx, wavelet = wavelet, mode = mode, level = level - 1)
+    coeffs.append(detail)
+    return coeffs
 
-    x = n.arange(0, 10, step = 0.01)
-    signal = n.cos(2*n.pi*x)
-    background = n.ones_like(x)
+def _dt_synthesis_tree(coeffs, first_stage, wavelet, mode):
+    """
+    Abstraction of the dual-tree cwt into a single tree.
+    """
+    late_stage_coeffs, first_stage_detail = coeffs[:-1], coeffs[-1]
+    late_synthesis = waverec(coeffs = late_stage_coeffs, wavelet = wavelet, mode = mode)
 
-   # plt.plot(x, signal, 'r')
-    plt.plot(x, dt_baseline(array = signal + background, max_iter = 10, level = 'max', first_stage = 'bior3.7'), 'b')
-    plt.plot(x, baseline(array = signal + background, max_iter = 10, level = 'max', wavelet = 'bior3.7'), 'g')
-    plt.show()
+    if len(late_synthesis) == len(first_stage_detail) + 1:
+        late_synthesis = late_synthesis[:-1]
+    
+    return idwt(cA = late_synthesis, cD = first_stage_detail, wavelet = first_stage, mode = mode)
