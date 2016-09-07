@@ -35,6 +35,7 @@ def dualtree_wavelet(name):
     ValueError
         If illegal wavelet name.
     """
+    # This is empty right now, but it might be extended in the future.
     return qshift(name)
     
 def qshift(name = 'qshift_a'):

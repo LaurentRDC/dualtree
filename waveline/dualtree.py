@@ -1,10 +1,11 @@
-from dtwavelets import dualtree_wavelet
-from wavelet import EXTENSION_MODE
+from wavelets import dualtree_wavelet
 import numpy as n
 from pywt import dwt, idwt, wavedec, waverec, dwt_max_level, Wavelet
 from warnings import warn
 
 __all__ = ['dtanalysis', 'dtsynthesis', 'dt_max_level', 'dt_approx_rec', 'dt_baseline']
+
+EXTENSION_MODE = 'constant'
 
 def dt_baseline(array, max_iter, level = 'max', first_stage = 'bior5.5', wavelet = 'qshift_a', background_regions = [], mask = None):
     """
@@ -298,3 +299,16 @@ def dtsynthesis(coeffs, first_stage = 'bior5.5', wavelet = 'qshift_a', mode = 's
     real = idwt(cA = real_synt, cD = d, wavelet = first_stage, mode = mode)
     imag = idwt(cA = imag_synt, cD = coeffs[-1], wavelet = first_stage, mode = mode)
     return 0.5*(real + imag)
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from discrete import approx_rec, baseline
+
+    x = n.arange(0, 10, step = 0.01)
+    signal = n.cos(2*n.pi*x)
+    background = n.ones_like(x)
+
+   # plt.plot(x, signal, 'r')
+    plt.plot(x, dt_baseline(array = signal + background, max_iter = 10, level = 'max', first_stage = 'bior3.7'), 'b')
+    plt.plot(x, baseline(array = signal + background, max_iter = 10, level = 'max', wavelet = 'bior3.7'), 'g')
+    plt.show()
