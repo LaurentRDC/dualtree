@@ -1,7 +1,7 @@
 
 from discrete import approx_rec, baseline, denoise, enhance
-from dualtree import dtanalysis, dtsynthesis, dt_approx_rec, dt_first_stage
-from wavelets import dualtree_wavelet, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
+from dualtree import dtanalysis, dtsynthesis, dt_approx_rec, dt_detail_rec
+from wavelets import dualtree_wavelet, dt_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
 import matplotlib.pyplot as plt
 import numpy as n
 import pywt
@@ -83,11 +83,11 @@ class TestDualTree(unittest.TestCase):
         reconstructed = dtsynthesis(coeffs = coeffs)
         self.assertTrue(n.allclose(array, reconstructed))
     
-    def test_dt_approx_rec(self):
+    def test_dt_approx_and_detail_rec(self):
         array = n.sin(n.arange(0, 10, step = 0.01))
-        test = dt_approx_rec(array = array, level = 'max', first_stage = 'bior5.5')
-        self.assertTrue(array.size == test.size)
-
+        low_freq = dt_approx_rec(array = array, level = 'max')
+        high_freq = dt_detail_rec(array = array, level = 'max')
+        self.assertTrue(n.allclose(array, low_freq + high_freq))
 
 ##############################################################################
 ###           BASELINE AND COMPANY

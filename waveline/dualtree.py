@@ -1,14 +1,14 @@
-from wavelets import dualtree_wavelet, kingsbury99_fs
+from wavelets import dualtree_wavelet, dt_first_stage
 import numpy as n
 from pywt import dwt, idwt, wavedec, waverec, dwt_max_level, Wavelet
 from warnings import warn
 
-__all__ = ['dtanalysis', 'dtsynthesis', 'dt_max_level', 'dt_approx_rec', 'dt_baseline']
+__all__ = ['dtanalysis', 'dtsynthesis', 'dt_max_level', 'dt_approx_rec', 'dt_detail_rec', 'dt_baseline']
 
-EXTENSION_MODE = 'symmetric'
+EXTENSION_MODE = 'constant'
 
 DEFAULT_FIRST_STAGE = 'kingsbury99_fs'
-DEFAULT_CMP_WAV = 'kingsbury99'
+DEFAULT_CMP_WAV = 'qshift_a'
 
 def dt_baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, background_regions = [], mask = None):
     """
@@ -111,21 +111,12 @@ def dt_approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
         If input array has dimension > 1 
     """
     array = n.asarray(array, dtype = n.float)
-    original_array = n.copy(array)
     
-    # Choose deconstruction and reconstruction functions based on dimensionality
     dim = array.ndim
     if dim > 2:
         raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
     elif dim == 2:
         raise NotImplementedError('Only 1D signals are currently supported.')
-    
-    max_level = dt_max_level(data = array, first_stage = first_stage, wavelet = wavelet)
-    if level == 'max':
-        level = max_level
-    elif level > max_level:
-        warn('Input level {} higher than maximum {}. Maximum level used.'.format(level, max_level), UserWarning)
-        level = max_level
             
     # By now, we are sure that the decomposition level will be supported.
     # Decompose the signal using the multilevel discrete wavelet transform
@@ -135,35 +126,51 @@ def dt_approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
     # Replace detail coefficients by 0 + 0*1j; keep the correct length so that the
     # reconstructed signal has the same size as the (possibly upsampled) signal
     # The structure of coefficients depends on the dimensionality
-    zeroed = list()
-    if dim == 1:
-        for det in det_coeffs:
-            zeroed.append(n.zeros_like(det))
-    elif dim == 2:
-        for detail_tuples in det_coeffs:
-            cHn, cVn, cDn = detail_tuples       # See PyWavelet.wavedec2 documentation for coefficients structure.
-            zeroed.append( (n.zeros_like(cHn, dtype = n.complex), n.zeros_like(cVn, dtype = n.complex), n.zeros_like(cDn, dtype = n.complex)) )
-        
-    # Reconstruct signal
-    reconstructed = dtsynthesis(coeffs = [app_coeffs] + zeroed, first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    det_coeffs = [n.zeros_like(det, dtype = n.complex) for det in det_coeffs]
+    reconstructed = dtsynthesis(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    return n.resize(reconstructed, new_shape = array.shape)
+
+def dt_detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
+    """
+    Detail reconstruction of a signal/image using the dual-tree approach.
     
-    # Adjust size of reconstructed signal so that it is the same size as input
-    if reconstructed.size == original_array.size:
-        return reconstructed
-        
-    elif original_array.size < reconstructed.size:
-        if dim == 1:
-            return reconstructed[:original_array.shape[0]]
-        elif dim == 2:
-            return reconstructed[:original_array.shape[0], :original_array.shape[1]]
-        
-    elif original_array.size > reconstructed.size:
-        extended_reconstructed = n.zeros_like(original_array, dtype = original_array.dtype)        
-        if dim == 1:
-            extended_reconstructed[:reconstructed.shape[0]] = reconstructed
-        elif dim == 2:
-            extended_reconstructed[:reconstructed.shape[0], :reconstructed.shape[1]] = reconstructed
-        return extended_reconstructed
+    Parameters
+    ----------
+    array : array-like
+        Array to be decomposed. Currently, only 1D and 2D arrays are supported.
+    level : int or 'max'
+        Decomposition level. 
+        If None, the maximum possible decomposition level is used.
+    wavelet : str or Wavelet object
+        Can be any argument accepted by PyWavelet.Wavelet, e.g. 'db10'
+    mask : ndarray
+        Same shape as array. Must evaluate to True where data is invalid.
+            
+    Returns
+    -------
+    reconstructed : ndarray
+        Approximated reconstruction of the input array.
+    
+    Raises
+    ------    
+    ValueError
+        If input array has dimension > 2
+    NotImplementedError
+        If input array has dimension > 1 
+    """
+    array = n.asarray(array, dtype = n.float)
+    
+    dim = array.ndim
+    if dim > 2:
+        raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
+    elif dim == 2:
+        raise NotImplementedError('Only 1D signals are currently supported.')
+
+    coeffs = dtanalysis(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    app_coeffs = n.zeros_like(coeffs[0], dtype = n.complex) 
+
+    reconstructed = dtsynthesis(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    return n.resize(reconstructed, new_shape = array.shape)
 
 def dt_max_level(data, first_stage, wavelet):
     """
@@ -189,40 +196,6 @@ def dt_max_level(data, first_stage, wavelet):
     data_len = min(data.shape)/2  # Data will already have been decimated by at least the first stage
     filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len])
     return dwt_max_level(data_len = min(data.shape)/2, filter_len = filter_len)
-
-def dt_first_stage(wavelet = 'kingsbury99_fs'):
-    """
-    Returns two wavelets to be used in the dual-tree complex wavelet transform, at the first stage.
-
-    Parameters
-    ----------
-    wavelet : str or Wavelet
-        Must be a symmetric wavelet.
-
-    Return
-    ------
-    wav1, wav2 : Wavelet objects
-
-    Raises
-    ------
-    ValueError
-        If input wavelet is not symmetric.
-    """
-    if wavelet == 'kingsbury99_fs':
-        return kingsbury99_fs()
-
-    if not isinstance(wavelet, Wavelet):
-        wavelet = Wavelet(wavelet)
-    
-    dec_lo, dec_hi, rec_lo, rec_hi = wavelet.filter_bank
-
-    for bank in (dec_lo, dec_hi):
-        bank[1:], bank[0] = bank[:-1], 0 #bank[-1]  #Shift by one index
-    for bank in (rec_lo, rec_hi):
-        bank[0], bank[1:] = bank[-1], bank[:-1]
-
-    wav2 = Wavelet(name = wavelet.name, filter_bank = [dec_lo, dec_hi, rec_lo, rec_hi])
-    return wavelet, wav2
 
 #TODO: extend to 2D
 def dtanalysis(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = 'symmetric'):
@@ -252,7 +225,7 @@ def dtanalysis(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WA
         (`cA_n`) of the result is approximation coefficients array and the
         following elements (`cD_n` - `cD_1`) are details coefficients arrays.
     """
-    data = n.asarray(data, dtype = n.float)
+    data = n.asarray(data, dtype = n.float)/n.sqrt(2)
 
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dt_first_stage(first_stage)
@@ -316,7 +289,7 @@ def dtsynthesis(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP
     real = _single_tree_synthesis(coeffs = real_coeffs, first_stage = real_first, wavelet = real_wavelet, mode = mode)
     imag = _single_tree_synthesis(coeffs = imag_coeffs, first_stage = imag_first, wavelet = imag_wavelet, mode = mode)
     
-    return (real + imag)/2
+    return n.sqrt(2)*(real + imag)/2
 
 def _single_tree_analysis(data, first_stage, wavelet, level, mode):
     """

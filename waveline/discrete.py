@@ -173,7 +173,6 @@ def approx_rec(array, level, wavelet, mask = None):
         If input array has dimension > 2 
     """
     array = n.asarray(array, dtype = n.float)
-    original_array = n.copy(array)
     
     # Choose deconstruction and reconstruction functions based on dimensionality
     dim = array.ndim
@@ -216,21 +215,4 @@ def approx_rec(array, level, wavelet, mask = None):
         
     # Reconstruct signal
     reconstructed = rec_func([app_coeffs] + zeroed, wavelet = wavelet, mode = EXTENSION_MODE)
-    
-    # Adjust size of reconstructed signal so that it is the same size as input
-    if reconstructed.size == original_array.size:
-        return reconstructed
-        
-    elif original_array.size < reconstructed.size:
-        if dim == 1:
-            return reconstructed[:original_array.shape[0]]
-        elif dim == 2:
-            return reconstructed[:original_array.shape[0], :original_array.shape[1]]
-        
-    elif original_array.size > reconstructed.size:
-        extended_reconstructed = n.zeros_like(original_array, dtype = original_array.dtype)        
-        if dim == 1:
-            extended_reconstructed[:reconstructed.shape[0]] = reconstructed
-        elif dim == 2:
-            extended_reconstructed[:reconstructed.shape[0], :reconstructed.shape[1]] = reconstructed
-        return extended_reconstructed
+    return n.resize(reconstructed, new_shape = array.shape)

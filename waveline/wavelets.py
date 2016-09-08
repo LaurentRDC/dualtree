@@ -5,6 +5,7 @@ Source: http://www-sigproc.eng.cam.ac.uk/Main/NGK
 import numpy as n
 from os.path import join, dirname
 import pywt
+from pywt import Wavelet
 
 DATADIR = join(dirname(__file__), 'data')
 
@@ -39,6 +40,40 @@ def dualtree_wavelet(name):
         return kingsbury99()
     
     return qshift(name)
+
+def dt_first_stage(wavelet = 'kingsbury99_fs'):
+    """
+    Returns two wavelets to be used in the dual-tree complex wavelet transform, at the first stage.
+
+    Parameters
+    ----------
+    wavelet : str or Wavelet
+        Must be a symmetric wavelet.
+
+    Return
+    ------
+    wav1, wav2 : Wavelet objects
+
+    Raises
+    ------
+    ValueError
+        If input wavelet is not symmetric.
+    """
+    if wavelet == 'kingsbury99_fs':
+        return kingsbury99_fs()
+
+    if not isinstance(wavelet, Wavelet):
+        wavelet = Wavelet(wavelet)
+    
+    dec_lo, dec_hi, rec_lo, rec_hi = wavelet.filter_bank
+
+    for bank in (dec_lo, dec_hi):
+        bank[1:], bank[0] = bank[:-1], 0 #bank[-1]  #Shift by one index
+    for bank in (rec_lo, rec_hi):
+        bank[0], bank[1:] = bank[-1], bank[:-1]
+
+    wav2 = Wavelet(name = wavelet.name, filter_bank = [dec_lo, dec_hi, rec_lo, rec_hi])
+    return wavelet, wav2
     
 def qshift(name = 'qshift_a'):
     """
