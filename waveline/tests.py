@@ -1,7 +1,7 @@
 
 from discrete import approx_rec, baseline, denoise, enhance
 from dualtree import dtanalysis, dtsynthesis, dt_approx_rec, dt_first_stage
-from wavelets import dualtree_wavelet, qshift, ALL_QSHIFT
+from wavelets import dualtree_wavelet, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
 import matplotlib.pyplot as plt
 import numpy as n
 import pywt
@@ -24,8 +24,44 @@ class TestComplexWavelets(unittest.TestCase):
         wav1, wav2 = dt_first_stage('db5')
         self.assertTrue(n.allclose(wav1.dec_lo[:-1], wav2.dec_lo[1:]))
         self.assertTrue(n.allclose(wav1.dec_hi[:-1], wav2.dec_hi[1:]))
-        self.assertTrue(n.allclose(wav1.rec_lo[:-1], wav2.rec_lo[1:]))
-        self.assertTrue(n.allclose(wav1.rec_hi[:-1], wav2.rec_hi[1:]))
+        #self.assertTrue(n.allclose(wav1.rec_lo[:-1], wav2.rec_lo[1:]))
+        #self.assertTrue(n.allclose(wav1.rec_hi[:-1], wav2.rec_hi[1:]))
+
+        # First wavelet should be the same as the input 'db5'
+        og_wav = pywt.Wavelet('db5')
+        self.assertTrue(n.allclose(wav1.rec_hi, og_wav.rec_hi))
+        self.assertTrue(n.allclose(wav1.rec_lo, og_wav.rec_lo))
+        self.assertTrue(n.allclose(wav1.dec_hi, og_wav.dec_hi))
+        self.assertTrue(n.allclose(wav1.dec_lo, og_wav.dec_lo))
+    
+    #@unittest.expectedFailure
+    def test_first_stage_reconstruction(self):
+        wav1, wav2 = dt_first_stage()
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        # Since it is tested that wav1 == Wavelet('db5'), 
+        # only test that wav2 is a perfect reconstruction filter
+
+        a, d = pywt.dwt(data = array, wavelet = wav2)
+        rec = pywt.idwt(cA = a, cD = d, wavelet = wav2)
+        self.assertTrue(n.allclose(array, rec))
+    
+    def test_kingsbury99_fs(self):
+        """ Test for perfect reconstruction """
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        wav1, wav2 = kingsbury99_fs()
+        for wav in (wav1, wav2):
+            a, d = pywt.dwt(data = array, wavelet = wav)
+            rec = pywt.idwt(cA = a, cD = d, wavelet = wav)
+            self.assertTrue(n.allclose(array, rec))
+    
+    def test_kingsbury99(self):
+        """ Test for perfect reconstruction """
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        wav1, wav2 = kingsbury99()
+        for wav in (wav1, wav2):
+            a, d = pywt.dwt(data = array, wavelet = wav)
+            rec = pywt.idwt(cA = a, cD = d, wavelet = wav)
+            self.assertTrue(n.allclose(array, rec))
 
 class TestDualTree(unittest.TestCase):
     

@@ -24,7 +24,7 @@ def dualtree_wavelet(name):
 
     Parameters
     ----------
-    name : str, {'qshift_06', 'qshift_a' (default), 'qshift_b', 'qshift_c', 'qshift_d'}
+    name : str, {'qshift_06', 'qshift_a', 'qshift_b', 'qshift_c', 'qshift_d', 'kingsbury99'}
     
     Returns
     -------
@@ -35,7 +35,9 @@ def dualtree_wavelet(name):
     ValueError
         If illegal wavelet name.
     """
-    # This is empty right now, but it might be extended in the future.
+    if name == 'kingsbury99':
+        return kingsbury99()
+    
     return qshift(name)
     
 def qshift(name = 'qshift_a'):
@@ -77,4 +79,45 @@ def qshift(name = 'qshift_a'):
     real_filter_bank = [dec_real_low, dec_real_high, rec_real_low, rec_real_high]
     imag_filter_bank = [dec_imag_low, dec_imag_high, rec_imag_low, rec_imag_high]
 
-    return pywt.Wavelet(name = 'real:' + name, filter_bank = real_filter_bank), pywt.Wavelet(name = 'imag:' + name, filter_bank = imag_filter_bank) 
+    return pywt.Wavelet(name = 'real:' + name, filter_bank = real_filter_bank), pywt.Wavelet(name = 'imag:' + name, filter_bank = imag_filter_bank)
+
+
+#############################################################################################
+#                           EXAMPLE COMPLEX WAVELETS FROM
+#               http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
+#############################################################################################
+def kingsbury99_fs():
+    """
+    Returns a first-stage complex wavelet as published in Kingsbury 1999. 
+    Taken from http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
+    """
+    real_dec_lo = n.array([0, -0.08838834764832, 0.08838834764832, 0.69587998903400,0.69587998903400, 0.08838834764832, -0.08838834764832, 0.01122679215254, 0.01122679215254, 0])
+    real_dec_hi = n.array([0, -0.01122679215254, 0.01122679215254, 0.08838834764832, 0.08838834764832, -0.69587998903400, 0.69587998903400, -0.08838834764832, -0.08838834764832, 0])
+    real_rec_lo, real_rec_hi = real_dec_lo[::-1], real_dec_hi[::-1]
+
+    imag_dec_lo = n.array([0.01122679215254, 0.01122679215254, -0.08838834764832, 0.08838834764832, 0.69587998903400, 0.69587998903400, 0.08838834764832, -0.08838834764832, 0, 0])
+    imag_dec_hi = n.array([0, 0, -0.08838834764832, -0.08838834764832, 0.69587998903400, -0.69587998903400, 0.08838834764832, 0.08838834764832, 0.01122679215254, -0.01122679215254])
+    imag_rec_lo, imag_rec_hi = imag_dec_lo[::-1], imag_dec_hi[::-1]
+
+    real_fb = [real_dec_lo, real_dec_hi, real_rec_lo, real_rec_hi]
+    imag_fb = [imag_dec_lo, imag_dec_hi, imag_rec_lo, imag_rec_hi]
+
+    return pywt.Wavelet(name = 'real:', filter_bank = real_fb), pywt.Wavelet(name = 'imag:', filter_bank = imag_fb)
+
+def kingsbury99():
+    """
+    Returns a late-stage complex wavelet as published in Kingsbury 1999. 
+    Taken from http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
+    """
+    real_dec_lo = n.array([ 0.03516384000000, 0, -0.08832942000000, 0.23389032000000, 0.76027237000000, 0.58751830000000, 0, -0.11430184000000, 0, 0])
+    real_dec_hi = n.array([0, 0, -0.11430184000000, 0, 0.58751830000000, -0.76027237000000, 0.23389032000000, 0.08832942000000, 0, -0.03516384000000])
+    real_rec_lo, real_rec_hi = real_dec_lo[::-1], real_dec_hi[::-1]
+
+    imag_dec_lo = n.array([ 0, 0, -0.11430184000000, 0, 0.58751830000000, 0.76027237000000, 0.23389032000000, -0.08832942000000, 0, 0.03516384000000])
+    imag_dec_hi = n.array([-0.03516384000000, 0, 0.08832942000000, 0.23389032000000, -0.76027237000000, 0.58751830000000, 0, -0.11430184000000, 0, 0])
+    imag_rec_lo, imag_rec_hi = imag_dec_lo[::-1], imag_dec_hi[::-1]
+
+    real_fb = [real_dec_lo, real_dec_hi, real_rec_lo, real_rec_hi]
+    imag_fb = [imag_dec_lo, imag_dec_hi, imag_rec_lo, imag_rec_hi]
+
+    return pywt.Wavelet(name = 'real:', filter_bank = real_fb), pywt.Wavelet(name = 'imag:', filter_bank = imag_fb)

@@ -60,8 +60,8 @@ def compare_1():
     spectrum += BG1
 
     plt.plot(i, spectrum - BG1, 'g')
-    plt.plot(i, spectrum - baseline(array = spectrum, max_iter = 100, level = 'max', wavelet = 'db3'), 'b')
-    plt.plot(i, spectrum - dt_approx_rec(array = spectrum, first_stage = 'sym6', level = 'max'), 'r')
+    plt.plot(i, spectrum - approx_rec(array = spectrum, level = 'max', wavelet = 'db3'), 'b')
+    plt.plot(i, spectrum - dt_approx_rec(array = spectrum, level = 'max'), 'r')
     plt.show()
 
 def compare_with_dtcwt():
