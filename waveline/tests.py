@@ -1,4 +1,5 @@
 
+from barebone import dwt, idwt
 from discrete import approx_rec, baseline, denoise, enhance
 from dualtree import dtanalysis, dtsynthesis, dt_approx_rec, dt_detail_rec
 from wavelets import dualtree_wavelet, dt_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
@@ -88,6 +89,38 @@ class TestDualTree(unittest.TestCase):
         low_freq = dt_approx_rec(array = array, level = 'max')
         high_freq = dt_detail_rec(array = array, level = 'max')
         self.assertTrue(n.allclose(array, low_freq + high_freq))
+
+##############################################################################
+###           TEST BAREBONES IMPLEMENTATION
+##############################################################################
+import barebone
+
+class TestBarebone(unittest.TestCase):
+
+    def test_sizes(self):
+        array = n.sin(n.linspace(0, 10, 1024))
+        wavelet = pywt.Wavelet('db5')
+        lo, hi = barebone.analysis(array, wavelet.dec_lo, wavelet.dec_hi)
+        self.assertTrue(len(lo) == len(array)/2)
+        self.assertTrue(len(hi) == len(array)/2)
+
+        reconstructed = barebone.synthesis(lo, hi, wavelet.rec_lo, wavelet.rec_hi)
+        self.assertTrue(len(reconstructed) == len(lo) + len(hi))
+
+    @unittest.expectedFailure
+    def test_afsf(self):
+        array = n.sin(n.linspace(0, 10, 1024))
+        wavelet = pywt.Wavelet('db5')
+        lo, hi = barebone.analysis(array, wavelet.dec_lo, wavelet.dec_hi)
+        reconstructed = barebone.synthesis(lo, hi, wavelet.rec_lo, wavelet.rec_hi)
+        self.assertTrue(n.allclose(array, reconstructed))
+    
+    @unittest.expectedFailure
+    def test_perfect_reconstruction(self):
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        coeffs = dwt(data = array, level = 1)
+        reconstructed = idwt(coeffs = coeffs)
+        self.assertTrue(n.allclose(array, reconstructed))
 
 ##############################################################################
 ###           BASELINE AND COMPANY

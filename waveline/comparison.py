@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as n
 import pywt
 
-i = n.linspace(0, 2000, num = 1028)
+i = n.arange(1024)
+BG_REGIONS = [slice(96, 161), slice(390, 526), slice(669, 739), 845, 989]
 
 def gaussian(amp, mean, std):
     return amp*n.exp( -( (i - mean)**2 )/std )
@@ -59,8 +60,8 @@ def compare_1():
     spectrum = reference_spectrum_1()
     
     plt.plot(i, spectrum, 'g')
-    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', wavelet = 'db3'), 'b')
-    plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, wavelet = 'qshift_c', level = 'max'), 'r')
+    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', background_regions = BG_REGIONS, wavelet = 'db3'), 'b')
+    plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, wavelet = 'qshift_c', level = 'max', background_regions = BG_REGIONS), 'r')
     plt.show()
 
 def compare_with_dtcwt():
