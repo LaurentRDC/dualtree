@@ -16,13 +16,14 @@ import matplotlib.pyplot as plt
 import numpy as n
 import pywt
 
-i = n.arange(1024, step = 0.01)
+i = n.linspace(0, 1024, num = 10240)
 BG_REGIONS = [] #[slice(96, 161), slice(390, 526), slice(669, 739), 845, 989]
 
 def gaussian(amp, mean, std):
     return amp*n.exp( -( (i - mean)**2 )/std )
 
 BG1 = gaussian(20, 570, 100000)   #background
+#BG1 = n.sin(i/50)
 
 def reference_spectrum_1():
     """ Returns a test spectrum after [1] Fig. 3 (a) """
@@ -68,8 +69,15 @@ def compare_2():
     spectrum = reference_spectrum_1()
     
     plt.plot(i, spectrum, 'g')
-    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', wavelet = 'db3'), 'b')
+    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', wavelet = 'db8'), 'b')
     plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, level = 'max'), 'r')
+    plt.show()
+
+def spectrum():
+    spectrum = reference_spectrum_1()
+
+    for level in (6,7,8,9, 10):
+        plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, level = level))
     plt.show()
 
 def compare_brooklyn():
