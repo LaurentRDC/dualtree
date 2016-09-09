@@ -10,6 +10,8 @@ from pywt import Wavelet
 DATADIR = join(dirname(__file__), 'data')
 
 ALL_QSHIFT = ('qshift_a', 'qshift_b', 'qshift_c', 'qshift_d')
+ALL_COMPLEX_WAV = ('kingsbury99',) + ALL_QSHIFT
+ALL_FIRST_STAGE = ('kingsbury99_fs')
 
 def _load_from_file(basename, varnames):
     filename = join(DATADIR, basename + '.npz')
@@ -18,6 +20,37 @@ def _load_from_file(basename, varnames):
             return tuple([mat[k].flatten() for k in varnames])
         except KeyError:
             raise ValueError('Wavelet does not define ({0}) coefficients'.format(', '.join(varnames)))
+
+def circular_shift(signal, i):
+    """ 
+    Circular shift of a signal by i samples.
+    
+    Parameters
+    ----------
+    signal : array-like, ndim 1
+
+    i : int
+        Number of samples by which to shift. Positive numbers
+        shift to the right, while negative numbers shift to the left.
+    
+    Returns
+    -------
+    shifted : ndarray, ndim 1
+
+    Examples
+    --------
+    >>> import numpy as n
+    >>> arr = n.zeros( shape = (10, ) )
+    >>> arr[5] = 1
+    >>> arr
+    array([ 0.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.])
+    >>> circular_shift(arr, -1)
+    array([ 0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,  0.])
+    >>> circular_shift(arr, 5)  # loops around
+    array([ 1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
+    """
+    extent = n.arange(0, len(signal))
+    return signal[ n.mod(extent - i, len(signal))]
 
 def dualtree_wavelet(name):
     """
@@ -53,27 +86,30 @@ def dt_first_stage(wavelet = 'kingsbury99_fs'):
     Return
     ------
     wav1, wav2 : Wavelet objects
-
-    Raises
-    ------
-    ValueError
-        If input wavelet is not symmetric.
     """
+    # Special case, preshifted
     if wavelet == 'kingsbury99_fs':
         return kingsbury99_fs()
 
     if not isinstance(wavelet, Wavelet):
         wavelet = Wavelet(wavelet)
     
-    dec_lo, dec_hi, rec_lo, rec_hi = wavelet.filter_bank
+    # extend filter bank with zeros
+    filter_bank = [n.array(f, copy = True) for f in wavelet.filter_bank]
+    for filt in filter_bank:
+        extended = n.zeros( shape = (filt.shape[0] + 2,), dtype = n.float)
+        extended[1:-1] = filt
+        filt = extended
 
-    for bank in (dec_lo, dec_hi):
-        bank[1:], bank[0] = bank[:-1], 0 #bank[-1]  #Shift by one index
-    for bank in (rec_lo, rec_hi):
-        bank[0], bank[1:] = bank[-1], bank[:-1]
-
-    wav2 = Wavelet(name = wavelet.name, filter_bank = [dec_lo, dec_hi, rec_lo, rec_hi])
-    return wavelet, wav2
+    # Shift deconstruction filters to one side, and reconstruction
+    # to the other side
+    shifted_fb = [n.array(f, copy = True) for f in wavelet.filter_bank]
+    for filt in shifted_fb[::2]:    #Deconstruction filters
+        filt = circular_shift(filt, 1)
+    for filt in shifted_fb[2::]:    # Reconstruction filters
+        filt = circular_shift(filt, -1)
+    
+    return Wavelet(name = wavelet.name, filter_bank = filter_bank), Wavelet(name = wavelet.name, filter_bank = shifted_fb)
     
 def qshift(name = 'qshift_a'):
     """

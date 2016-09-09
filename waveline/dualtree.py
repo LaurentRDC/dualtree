@@ -1,13 +1,14 @@
-from wavelets import dualtree_wavelet, dt_first_stage
-import numpy as n
-from pywt import dwt, idwt, wavedec, waverec, dwt_max_level, Wavelet
-from warnings import warn
 
-__all__ = ['dtanalysis', 'dtsynthesis', 'dt_max_level', 'dt_approx_rec', 'dt_detail_rec', 'dt_baseline']
+import numpy as n
+from pywt import dwt, idwt, swt, iswt, wavedec, waverec, dwt_max_level, Wavelet
+from warnings import warn
+from wavelets import dualtree_wavelet, dt_first_stage
+
+__all__ = ['dualtree', 'idualtree', 'dt_max_level', 'dt_approx_rec', 'dt_detail_rec', 'dt_baseline']
 
 EXTENSION_MODE = 'constant'
 
-DEFAULT_FIRST_STAGE = 'kingsbury99_fs'
+DEFAULT_FIRST_STAGE = 'db3' #'kingsbury99_fs'
 DEFAULT_CMP_WAV = 'qshift_a'
 
 def dt_baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, background_regions = [], mask = None):
@@ -120,14 +121,14 @@ def dt_approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
             
     # By now, we are sure that the decomposition level will be supported.
     # Decompose the signal using the multilevel discrete wavelet transform
-    coeffs = dtanalysis(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
     
     # Replace detail coefficients by 0 + 0*1j; keep the correct length so that the
     # reconstructed signal has the same size as the (possibly upsampled) signal
     # The structure of coefficients depends on the dimensionality
     det_coeffs = [n.zeros_like(det, dtype = n.complex) for det in det_coeffs]
-    reconstructed = dtsynthesis(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
 
 def dt_detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
@@ -166,10 +167,10 @@ def dt_detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
     elif dim == 2:
         raise NotImplementedError('Only 1D signals are currently supported.')
 
-    coeffs = dtanalysis(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
     app_coeffs = n.zeros_like(coeffs[0], dtype = n.complex) 
 
-    reconstructed = dtsynthesis(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    reconstructed = idualtree(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
 
 def dt_max_level(data, first_stage, wavelet):
@@ -193,12 +194,13 @@ def dt_max_level(data, first_stage, wavelet):
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dt_first_stage(first_stage)
     
-    data_len = min(data.shape)/2  # Data will already have been decimated by at least the first stage
+    # The first stage uses the undecimated wavelet transform, therefore we can pretend it didn't happen
+    # in terms of data length
     filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len])
-    return dwt_max_level(data_len = min(data.shape)/2, filter_len = filter_len)
+    return dwt_max_level(data_len = min(data.shape), filter_len = filter_len)
 
 #TODO: extend to 2D
-def dtanalysis(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = 'symmetric'):
+def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = 'symmetric'):
     """
     Multi-level 1D dual-tree complex wavelet transform.
 
@@ -247,7 +249,7 @@ def dtanalysis(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WA
         coeffs_list.append(real + 1j*imag)
     return coeffs_list
 
-def dtsynthesis(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = 'symmetric'):
+def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = 'symmetric'):
     """
     Multilevel 1D inverse dual-tree complex wavelet transform.
 
@@ -272,7 +274,6 @@ def dtsynthesis(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP
     ValueError 
         If the input coefficients are too few / not 
     """
-
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dt_first_stage(first_stage)
 
@@ -283,11 +284,8 @@ def dtsynthesis(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP
         return coeffs[0]
 
     # Parallel trees:
-    real_coeffs = [n.real(coeff) for coeff in coeffs]
-    imag_coeffs = [n.imag(coeff) for coeff in coeffs]
-
-    real = _single_tree_synthesis(coeffs = real_coeffs, first_stage = real_first, wavelet = real_wavelet, mode = mode)
-    imag = _single_tree_synthesis(coeffs = imag_coeffs, first_stage = imag_first, wavelet = imag_wavelet, mode = mode)
+    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = real_wavelet, mode = mode)
+    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = imag_wavelet, mode = mode)
     
     return n.sqrt(2)*(real + imag)/2
 
@@ -295,7 +293,8 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
     """
     Abstraction of the dual-tree cwt into a single tree.
     """
-    approx, detail = dwt(data = data, wavelet = first_stage, mode = mode)
+    #approx, detail = swt(data = data, wavelet = first_stage, level = 1)[0]
+    approx, detail = dwt(data = data, wavelet = wavelet, mode = mode)
     coeffs = wavedec(data = approx, wavelet = wavelet, mode = mode, level = level - 1)
     coeffs.append(detail)
     return coeffs
@@ -310,4 +309,5 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     if len(late_synthesis) == len(first_stage_detail) + 1:
         late_synthesis = late_synthesis[:-1]
     
-    return idwt(cA = late_synthesis, cD = first_stage_detail, wavelet = first_stage, mode = mode)
+    #return iswt(coeffs = [(late_synthesis, first_stage_detail)], wavelet = first_stage)
+    return idwt(cA = late_synthesis, cD = first_stage_detail, wavelet = wavelet, mode = mode)

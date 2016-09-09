@@ -9,15 +9,15 @@ References
 [1] F. Zhao, A. Wang. A background subtraction approach based on complex wavelet transforms in EDXRF
 """
 from discrete import baseline, approx_rec
-from dualtree import dt_baseline, dt_approx_rec, dtanalysis, dtsynthesis
+from dualtree import dt_baseline, dt_approx_rec, dualtree, idualtree
 from dtcwt.numpy.transform1d import Transform1d
 
 import matplotlib.pyplot as plt
 import numpy as n
 import pywt
 
-i = n.arange(1024)
-BG_REGIONS = [slice(96, 161), slice(390, 526), slice(669, 739), 845, 989]
+i = n.arange(1024, step = 0.01)
+BG_REGIONS = [] #[slice(96, 161), slice(390, 526), slice(669, 739), 845, 989]
 
 def gaussian(amp, mean, std):
     return amp*n.exp( -( (i - mean)**2 )/std )
@@ -59,28 +59,30 @@ def reference_spectrum_2():
 def compare_1():
     spectrum = reference_spectrum_1()
     
-    plt.plot(i, spectrum, 'g')
-    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', background_regions = BG_REGIONS, wavelet = 'db3'), 'b')
-    plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, wavelet = 'qshift_c', level = 'max', background_regions = BG_REGIONS), 'r')
+    plt.plot(i, BG1, 'g')
+    plt.plot(i, spectrum + BG1 - approx_rec(array = spectrum + BG1, level = 'max', wavelet = 'db3'), 'b')
+    plt.plot(i, spectrum + BG1 - dt_approx_rec(array = spectrum + BG1, level = 'max'), 'r')
     plt.show()
 
-def compare_with_dtcwt():
-    import dtcwt
-    transform = dtcwt.Transform1d()
-    vecs_t = transform.forward(spectrum, nlevels = 5)
-    rec = transform.inverse(vecs_t)
+def compare_2():
+    spectrum = reference_spectrum_1()
+    
+    plt.plot(i, spectrum, 'g')
+    plt.plot(i, spectrum + BG1 - baseline(array = spectrum + BG1, max_iter = 100, level = 'max', wavelet = 'db3'), 'b')
+    plt.plot(i, spectrum + BG1 - dt_baseline(array = spectrum + BG1, max_iter = 100, level = 'max'), 'r')
+    plt.show()
 
 def compare_brooklyn():
     import matplotlib.pyplot as plt
     level = 5
     wavelet = 'kingsbury99'
     x = n.zeros(shape = (256,), dtype = n.float)
-    coeffs = dtanalysis(x, level = level, wavelet = wavelet)
+    coeffs = dualtree(x, level = level, wavelet = wavelet)
     coeffs[0][12] = (1/n.sqrt(2)) + 1j*0
-    y1 = dtsynthesis(coeffs, wavelet = wavelet)
+    y1 = idualtree(coeffs, wavelet = wavelet)
 
     coeffs[0][12] = 0 + 1j*(1/n.sqrt(2))
-    y2 = dtsynthesis(coeffs)
+    y2 = idualtree(coeffs)
 
     amp = n.sqrt(y1**2 + y2**2)
     print(amp.sum())
@@ -89,4 +91,4 @@ def compare_brooklyn():
     plt.plot(i, y1, 'b'); plt.plot(i, y2, 'g'); plt.plot(i, amp, 'k'); plt.show()
 
 if __name__ == '__main__':
-    compare_1()
+    compare_2()
