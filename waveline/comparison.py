@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as n
 import pywt
 
-i = n.linspace(0, 1024, num = 10240)
+i = n.linspace(0, 1024, num = 8192)
 BG_REGIONS = [] #[slice(96, 161), slice(390, 526), slice(669, 739), 845, 989]
 
 def gaussian(amp, mean, std):

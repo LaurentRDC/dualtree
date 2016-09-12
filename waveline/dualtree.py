@@ -242,8 +242,8 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
         return data
 
     #Separate computation trees
-    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = real_wavelet, level = level, mode = mode)
-    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = imag_wavelet, level = level, mode = mode)
+    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode)
+    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode)
 
     # Combine coefficients into complex form
     coeffs_list = list()
@@ -286,8 +286,8 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
         return coeffs[0]
 
     # Parallel trees:
-    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = real_wavelet, mode = mode)
-    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = imag_wavelet, mode = mode)
+    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
+    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
     
     return n.sqrt(2)*(real + imag)/2
 
@@ -301,7 +301,7 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
 
     first_stage : Wavelet object
 
-    wavelet : Wavelet object
+    wavelet : 2-tuple of Wavelet object
 
     level : int
 
@@ -314,11 +314,22 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
         where `n` denotes the level of decomposition. The first element
         (`cA_n`) of the result is approximation coefficients array and the
         following elements (`cD_n` - `cD_1`) are details coefficients arrays.
-    """    
-    approx, detail = dwt(data = data, wavelet = wavelet, mode = mode)
-    coeffs = wavedec(data = approx, wavelet = wavelet, mode = mode, level = level - 1)
-    coeffs.append(detail)
-    return coeffs
+    """
+    approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode)
+
+    def wavelet_gen():
+        while True:
+            yield wavelet[0]
+            yield wavelet[1]
+    
+    coeffs_list = list()
+    for i, wav in zip(range(level - 1), wavelet_gen()):
+        approx, detail = dwt(data = approx, wavelet = wav, mode = mode)
+        coeffs_list.append(detail)
+    coeffs_list.append(approx)
+    coeffs_list.reverse()
+    coeffs_list.append(first_detail)
+    return coeffs_list
 
 def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     """
@@ -330,7 +341,7 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
 
     first_stage : Wavelet object
 
-    wavelet : Wavelet object
+    wavelet : 2-tuple of Wavelet object
 
     mode : str
 
@@ -338,10 +349,26 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     -------
     reconstructed : ndarray, ndim 1
     """
+    # Determine the level except first stage:
+    # The order of wavelets depends on whether
+    # the level is even or odd.
+    level = len(coeffs) - 2
+    def wavelet_gen(level):
+        while True:
+            yield wavelet[n.mod(level + 1, 2)]
+            yield wavelet[n.mod(level, 2)]
+    
     late_stage_coeffs, first_stage_detail = coeffs[:-1], coeffs[-1]
-    late_synthesis = waverec(coeffs = late_stage_coeffs, wavelet = wavelet, mode = mode)
+
+    # late stage reconstruction
+    a, ds = late_stage_coeffs[0], late_stage_coeffs[1:]
+    for d, wav in zip(ds, wavelet_gen(level)):
+        if len(a) == len(d) + 1:
+            a = a[:-1]
+        a = idwt(cA = a, cD = d, wavelet = wav, mode = mode)
+    late_synthesis = a
 
     if len(late_synthesis) == len(first_stage_detail) + 1:
         late_synthesis = late_synthesis[:-1]
     
-    return idwt(cA = late_synthesis, cD = first_stage_detail, wavelet = wavelet, mode = mode)
+    return idwt(cA = late_synthesis, cD = first_stage_detail, wavelet = first_stage, mode = mode)
