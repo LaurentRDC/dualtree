@@ -1,5 +1,3 @@
-
-from barebone import dwt, idwt
 from discrete import approx_rec, baseline, denoise, enhance
 from dualtree import dualtree, idualtree, dt_approx_rec, dt_detail_rec
 from wavelets import dualtree_wavelet, dt_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
@@ -23,8 +21,16 @@ class TestComplexWavelets(unittest.TestCase):
     
     def test_first_stage(self):
         """ Test of the 1 sample shift """
-        pass
-    
+        array = n.sin(n.arange(0, 10, step = 0.01))
+        for wavelet in pywt.wavelist():
+            try:
+                wav1, wav2 = dt_first_stage(wavelet)
+            except(ValueError):  #Invalid wavelet
+                continue
+            for wav in (wav2, wav2):
+                if not n.allclose( array, pywt.waverec(pywt.wavedec(array, wav), wav) ):
+                    print(wav)
+
     #@unittest.expectedFailure
     def test_first_stage_reconstruction(self):
         wav1, wav2 = dt_first_stage('db5')

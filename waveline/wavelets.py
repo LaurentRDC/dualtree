@@ -81,11 +81,17 @@ def dt_first_stage(wavelet = 'kingsbury99_fs'):
     Parameters
     ----------
     wavelet : str or Wavelet
-        Must be a symmetric wavelet.
+        Wavelet to be shifted for first-stage use. Can be any wavelet in pywt.wavelist() except for wavelets
+        in the 'dmey' family.
 
     Return
     ------
     wav1, wav2 : Wavelet objects
+
+    Raises
+    ------
+    ValueError
+        If invalid first stage wavelet.
     """
     # Special case, preshifted
     if wavelet == 'kingsbury99_fs':
@@ -93,6 +99,9 @@ def dt_first_stage(wavelet = 'kingsbury99_fs'):
 
     if not isinstance(wavelet, Wavelet):
         wavelet = Wavelet(wavelet)
+    
+    if wavelet.name == 'dmey':
+        raise ValueError('{} is an invalid first stage wavelet.'.format(wavelet.name))
     
     # extend filter bank with zeros
     filter_bank = [n.array(f, copy = True) for f in wavelet.filter_bank]
