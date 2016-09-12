@@ -5,91 +5,148 @@ Author : Laurent P. René de Cotret
 
 Functions
 ---------
+dualtree, idualtree
+    Forward and inverse dual-tree complex wavelet transform.
+
+dt_max_level
+    Maximum decomposition level possible with the dual-tree complex wavelet transform.
+
+dt_approx_rec, dt_detail_rec
+    Reconstruction of a signal using only approximate (detail) coefficients.
 
 References
 ----------
-Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
+[1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
 """
 import numpy as n
 from pywt import dwt, idwt, dwt_max_level, Wavelet
 from warnings import warn
 from wavelets import dualtree_wavelet, dt_first_stage
 
-__all__ = ['dualtree', 'idualtree', 'dt_max_level', 'dt_approx_rec', 'dt_detail_rec', 'dt_baseline']
+__all__ = ['dualtree', 'idualtree', 'dt_max_level', 'dt_approx_rec', 'dt_detail_rec']
 
-EXTENSION_MODE = 'constant'
-DEFAULT_FIRST_STAGE = 'kingsbury99_fs' #'kingsbury99_fs'
+DEFAULT_MODE = 'constant'
+DEFAULT_FIRST_STAGE = 'kingsbury99_fs'
 DEFAULT_CMP_WAV = 'qshift_a'
 
-def dt_baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, background_regions = [], mask = None):
+#TODO: extend to 2D
+def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = DEFAULT_MODE):
     """
-    Iterative method of baseline determination modified from [1]. This function handles
-    both 1D curves and 2D images.
-    
+    1D dual-tree complex wavelet transform, implemented from [1].
+
     Parameters
     ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
-    max_iter : int
-        Number of iterations to perform.
-    level : int or None, optional
-        Decomposition level. A higher level will result in a coarser approximation of
-        the input signal (read: a lower frequency baseline). If None (default), the maximum level
-        possible is used.
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'sym6'.
-    background_regions : list, optional
-        Indices of the array values that are known to be purely background. Depending
-        on the dimensions of array, the format is different:
-        
-        ``array.ndim == 1``
-          background_regions is a list of ints (indices) or slices
-          E.g. >>> background_regions = [0, 7, 122, slice(534, 1000)]
-          
-        ``array.ndim == 2``
-          background_regions is a list of tuples of ints (indices) or tuples of slices
-          E.g. >>> background_regions = [(14, 19), (42, 99), (slice(59, 82), slice(81,23))]
-         
-        Default is empty list.
-    
-    mask : ndarray, dtype bool, optional
-        Mask array that evaluates to True for pixels that are invalid. Useful to determine which pixels are masked
-        by a beam block.
-    
+    data: array_like
+        Input data
+    first_stage : str, optional
+        Wavelet to use for the first stage. See pywt.wavelist() for a list of suitable arguments
+    wavelet : str, optional
+        Wavelet to use. Must be appropriate for the dual-tree complex wavelet transform.
+        Default is 'qshift_a'. See dualtree.wavelets.ALL_COMPLEX_WAV for possible
+    level : int or 'max', optional
+        Decomposition level (must be >= 0). If level is 'max' (default) then it
+        will be calculated using the ``dwt_max_level`` function.
+    mode : str, optional
+        Signal extension mode, see pywt.Modes. Default is 'constant'.
+
     Returns
     -------
-    baseline : ndarray, shape (M,N)
-        Baseline of the input array.
+    [cA_n, cD_n, cD_n-1, ..., cD2, cD1] : list
+        Ordered list of coefficients arrays
+        where `n` denotes the level of decomposition. The first element
+        (`cA_n`) of the result is approximation coefficients array and the
+        following elements (`cD_n` - `cD_1`) are details coefficients arrays.
     
     Raises
     ------
     ValueError
-        If input array is neither 1D nor 2D.
+        If level is a nonnegative integer
+    
+    Notes
+    -----
+    The implementation uses two tricks presented in [1]:
+        `` Different first-stage wavelet ``
+            The first level of the dual-tree complex wavelet transform involves a combo of shifted wavelets.
+        
+        `` Swapping of filters at each stage ``
+            At each level > 1, the filters (separated into real and imaginary trees) are swapped.
+    
+    References
+    ----------
+    [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
-    array = n.asarray(array, dtype = n.float)
-    if mask is None:
-        mask = n.zeros_like(array, dtype = n.bool)
+    data = n.asarray(data, dtype = n.float)/n.sqrt(2)
+
+    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
+    real_first, imag_first = dt_first_stage(first_stage)
+
+    if level == 'max':
+        level = dt_max_level(data = data, first_stage = first_stage, wavelet = wavelet)
+    elif level < 0:
+        raise ValueError('Invalid level value {}. Must be a nonnegative integer.'.format(level))
+    elif level == 0:
+        return data
     
-    signal = n.copy(array)
-    background = n.zeros_like(array, dtype = n.float)
-    for i in range(max_iter):
-        
-        # Make sure the background values are equal to the original signal values in the
-        # background regions
-        for index in background_regions:
-            signal[index] = array[index]
-        
-        # Wavelet reconstruction using approximation coefficients
-        background = dt_approx_rec(array = signal, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)
-        
-        # Modify the signal so it cannot be more than the background
-        # This reduces the influence of the peaks in the wavelet decomposition
-        signal[signal > background] = background[signal > background]
+    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode)
+    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode)
+
+    # Combine coefficients into complex form
+    coeffs_list = list()
+    for real, imag in zip(real_coeffs, imag_coeffs):
+        coeffs_list.append(real + 1j*imag)
+    return coeffs_list
+
+def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = DEFAULT_MODE):
+    """
+    1D inverse dual-tree complex wavelet transform implemented from [1].
+
+    Parameters
+    ----------
+    coeffs : array_like
+        Coefficients list [cAn, cDn, cDn-1, ..., cD2, cD1]
+    first_stage : str, optional
+        Wavelet to use for the first stage. See pywt.wavelist() for a list of possible arguments.
+    wavelet : str, optional
+        Wavelet to use. Must be appropriate for the dual-tree complex wavelet transform.
+        Default is 'qshift_a'.
+    mode : str, optional
+        Signal extension mode, see Modes (default: 'symmetric')
     
-    # The background should be identically 0 where the data points are invalid
-    background[mask] = 0  
-    return background
+    Returns
+    -------
+    reconstructed : ndarray
+
+    Raises
+    ------
+    ValueError 
+        If the input coefficients are too few
+    
+    Notes
+    -----
+    The implementation uses two tricks presented in [1]:
+        `` Different first-stage wavelet ``
+            The first level of the dual-tree complex wavelet transform involves a combo of shifted wavelets.
+        
+        `` Swapping of filters at each stage ``
+            At each level > 1, the filters (separated into real and imaginary trees) are swapped.
+    
+    References
+    ----------
+    [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
+    """
+    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
+    real_first, imag_first = dt_first_stage(first_stage)
+
+    if len(coeffs) < 1:
+        raise ValueError(
+            "Coefficient list too short (minimum 1 array required).")
+    elif len(coeffs) == 1: # level 0 transform
+        return coeffs[0]
+    
+    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
+    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
+    
+    return n.sqrt(2)*(real + imag)/2
 
 def dt_approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
     """
@@ -131,14 +188,14 @@ def dt_approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
             
     # By now, we are sure that the decomposition level will be supported.
     # Decompose the signal using the multilevel discrete wavelet transform
-    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
     
     # Replace detail coefficients by 0 + 0*1j; keep the correct length so that the
     # reconstructed signal has the same size as the (possibly upsampled) signal
     # The structure of coefficients depends on the dimensionality
     det_coeffs = [n.zeros_like(det, dtype = n.complex) for det in det_coeffs]
-    reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = DEFAULT_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
 
 def dt_detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
@@ -177,10 +234,10 @@ def dt_detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEF
     elif dim == 2:
         raise NotImplementedError('Only 1D signals are currently supported.')
 
-    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs = n.zeros_like(coeffs[0], dtype = n.complex) 
 
-    reconstructed = idualtree(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = EXTENSION_MODE)
+    reconstructed = idualtree(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = DEFAULT_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
 
 def dt_max_level(data, first_stage, wavelet):
@@ -205,99 +262,6 @@ def dt_max_level(data, first_stage, wavelet):
     
     filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len])
     return dwt_max_level(data_len = min(data.shape), filter_len = filter_len)
-
-#TODO: extend to 2D
-def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = EXTENSION_MODE):
-    """
-    Multi-level 1D dual-tree complex wavelet transform.
-
-    Parameters
-    ----------
-    data: array_like
-        Input data
-    first_stage : str, optional
-        Wavelet to use for the first stage. See pywt.wavelist() for a list of suitable arguments
-    wavelet : str, optional
-        Wavelet to use. Must be appropriate for the dual-tree complex wavelet transform.
-        Default is 'qshift_a'.
-    level : int or 'max', optional
-        Decomposition level (must be >= 0). If level is 'max' (default) then it
-        will be calculated using the ``dwt_max_level`` function.
-    mode : str, optional
-        Signal extension mode, see Modes (default: 'symmetric')
-
-    Returns
-    -------
-    [cA_n, cD_n, cD_n-1, ..., cD2, cD1] : list
-        Ordered list of coefficients arrays
-        where `n` denotes the level of decomposition. The first element
-        (`cA_n`) of the result is approximation coefficients array and the
-        following elements (`cD_n` - `cD_1`) are details coefficients arrays.
-    
-    Raises
-    ------
-    ValueError
-        If level is a nonnegative integer
-    """
-    data = n.asarray(data, dtype = n.float)/n.sqrt(2)
-
-    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    real_first, imag_first = dt_first_stage(first_stage)
-
-    if level == 'max':
-        level = dt_max_level(data = data, first_stage = first_stage, wavelet = wavelet)
-    elif level < 0:
-        raise ValueError('Invalid level value {}. Must be a nonnegative integer.'.format(level))
-    elif level == 0:
-        return data
-    
-    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode)
-    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode)
-
-    # Combine coefficients into complex form
-    coeffs_list = list()
-    for real, imag in zip(real_coeffs, imag_coeffs):
-        coeffs_list.append(real + 1j*imag)
-    return coeffs_list
-
-def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = EXTENSION_MODE):
-    """
-    Multilevel 1D inverse dual-tree complex wavelet transform.
-
-    Parameters
-    ----------
-    coeffs : array_like
-        Coefficients list [cAn, cDn, cDn-1, ..., cD2, cD1]
-    first_stage : str, optional
-        Wavelet to use for the first stage. See pywt.wavelist() for a list of possible arguments.
-    wavelet : str, optional
-        Wavelet to use. Must be appropriate for the dual-tree complex wavelet transform.
-        Default is 'qshift_a'.
-    mode : str, optional
-        Signal extension mode, see Modes (default: 'symmetric')
-    
-    Returns
-    -------
-    reconstructed : ndarray
-
-    Raises
-    ------
-    ValueError 
-        If the input coefficients are too few
-    """
-    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    real_first, imag_first = dt_first_stage(first_stage)
-
-    if len(coeffs) < 1:
-        raise ValueError(
-            "Coefficient list too short (minimum 1 array required).")
-    elif len(coeffs) == 1: # level 0 transform
-        return coeffs[0]
-    
-    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
-    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
-    
-    return n.sqrt(2)*(real + imag)/2
 
 def _single_tree_analysis(data, first_stage, wavelet, level, mode):
     """

@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-@author: Laurent P. René de Cotret
+This module implements the algorithm presented in [1] and extends it to work on both 1D and 2D data.
+
+Author: Laurent P. René de Cotret
+
+References
+----------
+[1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
+
 import numpy as n
 import pywt
 from warnings import warn
 
-__all__ = ['baseline', 'denoise', 'enhance']
+__all__ = ['baseline', 'denoise']
 
 EXTENSION_MODE = 'constant'
 FUNC_DICT = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}    # Decomposition and recomposition functions based on dimensionality
 
 def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
     """
-    Iterative method of baseline determination modified from [1]. This function handles
-    both 1D curves and 2D images.
+    Iterative method of baseline determination from [1]. This function handles both 1D curves and 2D images.
     
     Parameters
     ----------
@@ -81,7 +87,6 @@ def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_region
     background[mask] = 0  
     return background
 
-
 def denoise(array, level = 2, wavelet = 'db5', mask = None):
     """
     Denoise an array using the wavelet transform.
@@ -109,38 +114,6 @@ def denoise(array, level = 2, wavelet = 'db5', mask = None):
         mask = n.zeros_like(array, dtype = n.bool)
 
     return approx_rec(array = array, level = level, wavelet = wavelet, mask = mask)
-
-
-def enhance(array, level = 2, wavelet = 'db5', mask = None):
-    """
-    Enhance an array by denoising and removing baseline.
-
-    Parameters
-    ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
-    level : int, optional
-        Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'db5'.
-    mask : ndarray, dtype bool, optional
-        Evaluates to True on array values that are invalid.
-
-    Returns
-    -------
-    enhanced : ndarray, shape (M,N)
-
-    Raises
-    ------    
-    ValueError
-        If input array has dimension > 2
-    """
-    if mask is None:
-        mask = n.zeros_like(array, dtype = n.bool)
-    
-    return denoise(array, level = level, wavelet = wavelet, mask = mask) - baseline(array, max_iter = 50, level = None, wavelet = wavelet, mask = mask)
-
 
 def approx_rec(array, level, wavelet, mask = None):
     """
