@@ -1,0 +1,27 @@
+package:
+  name: dualtree
+  version: !!str 0.5
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+    - PyWavelets
+    - numpy
+
+test:
+  imports:
+    - dualtree.tests.test_dt
+    - dualtree.tests.test_discrete
+
+about:
+  home: http://www.physics.mcgill.ca/siwicklab/
+  license_file : LICENSE
+  summary: 'Dual-tree complex wavelet transform and algorithms'
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
