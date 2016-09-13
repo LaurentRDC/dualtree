@@ -131,8 +131,8 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
         real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
         real_first, imag_first = dualtree_first_stage(first_stage)
 
-        real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
-        imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
+        real = _single_tree_synthesis(coeffs = [coeff.real for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
+        imag = _single_tree_synthesis(coeffs = [coeff.imag for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
     
     return n.sqrt(2)*(real + imag)/2
 
@@ -223,9 +223,9 @@ def dualtree_max_level(data, first_stage, wavelet):
 
     Parameters
     ----------
-    data : array-like
+    data : ndarray
         Input data. Can be of any dimension.
-    first_stage : str or Wavelet object
+    first_stage : str
         Wavelet used in the first stage of the dual-tree cwt. See pywt.wavelist() for suitable arguments.
     wavelet : str
         Dual-tree complex wavelet to use. Argument must be supported by dualtree_wavelet
@@ -234,11 +234,17 @@ def dualtree_max_level(data, first_stage, wavelet):
     -------
     max_level : int
     """
-    data = n.asarray(data)
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    
-    filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len])
-    return dwt_max_level(data_len = min(data.shape), filter_len = filter_len)
+    return dwt_max_level(data_len = min(data.shape), filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len]))
+
+##############################################################################
+#           SINGLE TREE OF THE TRANSFORM
+
+def _altern_wavelet(wavelets, level = 1):
+    """ Generator yielding alternative wavelets for swapping at each stage. """
+    while True:
+        yield wavelets[(level + 1) % 2]
+        yield wavelets[level % 2]
 
 def _single_tree_analysis(data, first_stage, wavelet, level, mode):
     """
@@ -264,16 +270,9 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
         (`cA_n`) of the result is approximation coefficients array and the
         following elements (`cD_n` - `cD_1`) are details coefficients arrays.
     """
-    approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode)
-
-    def wavelet_gen():
-        """ Alternating wavelet """
-        while True:
-            yield wavelet[0]
-            yield wavelet[1]
-    
+    approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode)    
     coeffs_list = list()
-    for i, wav in zip(range(level - 1), wavelet_gen()):
+    for i, wav in zip(range(level - 1), _altern_wavelet(wavelet)):
         approx, detail = dwt(data = approx, wavelet = wav, mode = mode)
         coeffs_list.append(detail)
     
@@ -305,23 +304,16 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     # Determine the level except first stage:
     # The order of wavelets depends on whether
     # the level is even or odd.
-    level = len(coeffs) - 2
-    def wavelet_gen(level):
-        """ Alternating wavelet, with starting wavelet depending on the decomposition level. """
-        while True:
-            yield wavelet[n.mod(level + 1, 2)]
-            yield wavelet[n.mod(level, 2)]
-    
+    level = len(coeffs) - 2    
     late_stage_coeffs, first_stage_detail = coeffs[:-1], coeffs[-1]
 
     # late stage reconstruction
     approx, detail_coeffs = late_stage_coeffs[0], late_stage_coeffs[1:]
-    for detail, wav in zip(detail_coeffs, wavelet_gen(level)):
+    for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level)):
         if len(approx) == len(detail) + 1:  # As done in pywt.wavedec
             approx = approx[:-1]
         approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode)
     
-    #TODO: is this necessary?
     if len(approx) == len(first_stage_detail) + 1:
         approx = approx[:-1]
     

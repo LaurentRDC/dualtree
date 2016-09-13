@@ -53,8 +53,7 @@ class TestDualTree(unittest.TestCase):
             coeffs = dualtree(data = self.array, level = 1, first_stage = first_stage)
             reconstructed = idualtree(coeffs = coeffs, first_stage = first_stage)
             self.assertTrue(n.allclose(self.array, reconstructed))
-
-    @unittest.skip
+    
     def test_perfect_reconstruction_multilevel(self):
         for first_stage in ALL_FIRST_STAGE:
             for wavelet in ALL_COMPLEX_WAV:
@@ -63,7 +62,6 @@ class TestDualTree(unittest.TestCase):
                     reconstructed = idualtree(coeffs = coeffs, first_stage = first_stage, wavelet = wavelet)
                     self.assertTrue(n.allclose(self.array, reconstructed))
     
-    @unittest.skip
     def test_dt_approx_and_detail_rec(self):
         for first_stage in ALL_FIRST_STAGE:
             for wavelet in ALL_COMPLEX_WAV:

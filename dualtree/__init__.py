@@ -24,7 +24,7 @@ baseline
 
 baseline_dwt
     Baseline determination of signals using the discrete wavelet transform. Provided for comparison
-    with the dual-tree equivalent 'baseline'. Algorithm described in [2].
+    with the dual-tree equivalent 'baseline'. Modified algorithm from [2].
 
 denoise
     Denoising of signals using the dual-tree complex wavelet transform.

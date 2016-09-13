@@ -3,6 +3,7 @@ Extension of PyWavelets to complex wavelets suitable for the Dual-Tree Complex W
 
 Author : Laurent P. René de Cotret
 """
+from functools import lru_cache
 import numpy as n
 from os.path import join, dirname
 from pywt import Wavelet, wavelist
@@ -14,6 +15,7 @@ ALL_QSHIFT = ('qshift1', 'qshift2', 'qshift3', 'qshift4')
 ALL_COMPLEX_WAV = ('kingsbury99',) + ALL_QSHIFT
 ALL_FIRST_STAGE = ('kingsbury99_fs',) + tuple([wav for wav in wavelist() if wav != 'dmey'])
 
+@lru_cache(maxsize = len(ALL_COMPLEX_WAV))
 def dualtree_wavelet(name):
     """
     Returns a complex wavelet suitable for dual-tree cwt from a name.
@@ -41,6 +43,7 @@ def dualtree_wavelet(name):
     
     return _qshift(name)
 
+@lru_cache(maxsize = len(ALL_FIRST_STAGE))
 def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     """
     Returns two wavelets to be used in the dual-tree complex wavelet transform, at the first stage.
@@ -85,7 +88,8 @@ def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
         filt = n.roll(filt, -1)
     
     return Wavelet(name = wavelet.name, filter_bank = filter_bank), Wavelet(name = wavelet.name, filter_bank = shifted_fb)
-    
+
+@lru_cache(maxsize = len(ALL_QSHIFT))
 def _qshift(name):
     """
     Returns a complex qshift wavelet by name.
