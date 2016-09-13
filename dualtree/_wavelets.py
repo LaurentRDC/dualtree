@@ -1,11 +1,7 @@
 """
 Extension of PyWavelets to complex wavelets suitable for the Dual-Tree Complex Wavelet Transform.
 
-Qshift filters source: http://www-sigproc.eng.cam.ac.uk/Main/NGK
-
-References
-----------
-[1] Kingsbury, N. 'Image Processing with Complex Wavelets'. Philocophical Transactions of the Royal Society A pp. 2543-2560, September 1999
+Author : Laurent P. René de Cotret
 """
 import numpy as n
 from os.path import join, dirname
@@ -24,7 +20,8 @@ def dualtree_wavelet(name):
 
     Parameters
     ----------
-    name : str, {'qshift_a', 'qshift_b', 'qshift_c', 'qshift_d', 'kingsbury99'}
+    name : str, {'qshift1', 'qshift2', 'qshift3', 'qshift4', 'kingsbury99'}
+        Valid arguments can be found in dualtree.ALL_COMPLEX_WAV
     
     Returns
     -------
@@ -42,7 +39,7 @@ def dualtree_wavelet(name):
     if name == 'kingsbury99':
         return kingsbury99()
     
-    return qshift(name)
+    return _qshift(name)
 
 def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     """
@@ -51,8 +48,7 @@ def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     Parameters
     ----------
     wavelet : str or Wavelet
-        Wavelet to be shifted for first-stage use. Can be any wavelet in pywt.wavelist() except for wavelets
-        in the 'dmey' family.
+        Wavelet to be shifted for first-stage use. Valid arguments can be found in dualtree.ALL_FIRST_STAGE
 
     Return
     ------
@@ -90,34 +86,24 @@ def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     
     return Wavelet(name = wavelet.name, filter_bank = filter_bank), Wavelet(name = wavelet.name, filter_bank = shifted_fb)
     
-def qshift(name = 'qshift_a'):
+def _qshift(name):
     """
     Returns a complex qshift wavelet by name.
 
     Parameters
     ----------
-    name : str, {'qshift_06', 'qshift_a' (default), 'qshift_b', 'qshift_c', 'qshift_d'}, optional
-        Wavelet family name.capitalize
+    name : str
+        Wavelet to use. Valid arguments can be found in dualtree.ALL_QSHIFT
     
     Returns
     -------
-    wavelet : pywt.Wavelet object
-        Complex wavelet.
+    wav1, wav2 : pywt.Wavelet objects
+        real and imaginary wavelet
     
     Raises
     ------ 
     ValueError 
         If illegal wavelet family name.
-    
-    Notes
-    -----
-    Below is a brief description of the qshift wavelets available.
-
-    qshift_a     Q-shift 10,10 tap filters,
-                 (with 10,10 non-zero taps, unlike qshift_06).
-    qshift_b     Q-Shift 14,14 tap filters.
-    qshift_c     Q-Shift 16,16 tap filters.
-    qshift_d     Q-Shift 18,18 tap filters.
     """
     filters = ('h0a', 'h0b', 'g0a', 'g0b', 'h1a', 'h1b', 'g1a', 'g1b')
     
@@ -143,7 +129,9 @@ def kingsbury99_fs():
     """
     Returns a first-stage complex wavelet as published in [1]. 
 
-    Taken from http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
+    References
+    ----------
+    [1] Kingsbury, N. 'Image Processing with Complex Wavelets'. Philocophical Transactions of the Royal Society A pp. 2543-2560, September 1999
     """
     real_dec_lo = n.array([0, -0.08838834764832, 0.08838834764832, 0.69587998903400,0.69587998903400, 0.08838834764832, -0.08838834764832, 0.01122679215254, 0.01122679215254, 0])
     real_dec_hi = n.array([0, -0.01122679215254, 0.01122679215254, 0.08838834764832, 0.08838834764832, -0.69587998903400, 0.69587998903400, -0.08838834764832, -0.08838834764832, 0])
@@ -162,7 +150,9 @@ def kingsbury99():
     """
     Returns a late-stage complex wavelet as published in [1].
 
-    Taken from http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
+    References
+    ----------
+    [1] Kingsbury, N. 'Image Processing with Complex Wavelets'. Philocophical Transactions of the Royal Society A pp. 2543-2560, September 1999
     """
     real_dec_lo = n.array([ 0.03516384000000, 0, -0.08832942000000, 0.23389032000000, 0.76027237000000, 0.58751830000000, 0, -0.11430184000000, 0, 0])
     real_dec_hi = n.array([0, 0, -0.11430184000000, 0, 0.58751830000000, -0.76027237000000, 0.23389032000000, 0.08832942000000, 0, -0.03516384000000])

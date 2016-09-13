@@ -1,24 +1,8 @@
 """
-Implementation of the dual-tree complex wavelet transform based on PyWavelets.
+Dual-tree complex wavelet transform (DTCWT) module.
 
-Author : Laurent P. René de Cotret
-
-Functions
----------
-dualtree, idualtree
-    Forward and inverse dual-tree complex wavelet transform.
-
-approx_rec, detail_rec
-    Reconstruction of a signal using only approximate (detail) coefficients.
-    
-dualtree_max_level
-    Maximum decomposition level possible with the dual-tree complex wavelet transform.
-
-References
-----------
-[1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
+Author: Laurent P. René de Cotret
 """
-
 import numpy as n
 from pywt import dwt, idwt, dwt_max_level
 from ._wavelets import dualtree_wavelet, dualtree_first_stage

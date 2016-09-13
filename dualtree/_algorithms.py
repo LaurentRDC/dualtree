@@ -1,19 +1,7 @@
 """
-Algorithms based on the discrete wavelet transform and the dual-tree complex wavelet transform.
+Algorithms based on the dual-tree complex wavelet transform.
 
 Author : Laurent P. Rene de Cotret
-
-Functions
----------
-baseline
-    Iterative baseline-determination modified from [1] to use the dual-tree complex wavelet transform.
-
-denoise
-    Denoising of a signal using the dual-tree complex wavelet transform
-
-References
-----------
-[1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
 from ._dtcwt import approx_rec, DEFAULT_FIRST_STAGE, DEFAULT_CMP_WAV
 import numpy as n
@@ -22,7 +10,7 @@ __all__ = ['baseline', 'denoise']
 
 def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, background_regions = [], mask = None):
     """
-    Iterative method of baseline determination based on the dual-tree complex wavelet transform.
+    Iterative method of baseline determination based on the dual-tree complex wavelet transform. Modified from [1]
     
     Parameters
     ----------
@@ -66,6 +54,10 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
         If input is a 2D array
     ValueError
         If input array is neither 1D nor 2D.
+        
+    References
+    ----------
+    [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
     """
     array = n.asarray(array, dtype = n.float)
     if array.ndim == 2:

@@ -1,5 +1,5 @@
 from dualtree import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level
-from dualtree._wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT, ALL_FIRST_STAGE, ALL_COMPLEX_WAV
+from dualtree._wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, ALL_QSHIFT, ALL_FIRST_STAGE, ALL_COMPLEX_WAV
 
 import numpy as n
 import pywt

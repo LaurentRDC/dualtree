@@ -1,22 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-This module implements the algorithm presented in [1] and extends it to work on 2D data.
+Algorithms based on the discrete wavelet transform.
 
 Author: Laurent P. René de Cotret
-
-Functions
----------
-baseline_dwt
-    Baseline determination of signals using the discrete wavelet transform. Provided for comparison
-    with the dual-tree equivalent 'baseline'. Algorithm described in [1].
-
-denoise_dwt
-    Denoising of signals using the discrete wavelet transform. Provided for comparison
-    with the dual-tree equivalent 'denoise'.
-
-References
-----------
-[1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
 from ._dtcwt import DEFAULT_MODE
 import numpy as n
@@ -29,7 +15,7 @@ FUNC_DICT = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}
 
 def baseline_dwt(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
     """
-    Iterative method of baseline determination from [1]. This function handles both 1D curves and 2D images.
+    Iterative method of baseline determination, modified from [1]. This function handles both 1D curves and 2D images.
     
     Parameters
     ----------
@@ -71,6 +57,10 @@ def baseline_dwt(array, max_iter, level = 'max', wavelet = 'sym6', background_re
     ------
     ValueError
         If input array is neither 1D nor 2D.
+    
+    References
+    ----------
+    [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
     """
     array = n.asarray(array, dtype = n.float)
     if mask is None:
