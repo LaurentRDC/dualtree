@@ -1,5 +1,5 @@
-from dualtree import dualtree, idualtree, approx_rec, detail_rec
-from dualtree.wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
+from dualtree import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level
+from dualtree._wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT, ALL_FIRST_STAGE, ALL_COMPLEX_WAV
 
 import numpy as n
 import pywt
@@ -13,75 +13,63 @@ n.random.seed(23)
 
 class TestComplexWavelets(unittest.TestCase):
 
-    def test_qshift(self):
-        for name in ALL_QSHIFT:
-            wavelets = qshift(name)
+    def setUp(self):
+        self.array = n.sin(n.arange(0, 10, step = 0.01))
     
     def test_first_stage(self):
-        """ Test of the 1 sample shift """
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        for wavelet in pywt.wavelist():
-            try:
-                wav1, wav2 = dualtree_first_stage(wavelet)
-            except(ValueError):  #Invalid wavelet
-                continue
-            for wav in (wav2, wav2):
-                if not n.allclose( array, pywt.waverec(pywt.wavedec(array, wav), wav) ):
-                    print(wav)
-    
-    def test_first_stage_reconstruction(self):
-        wav1, wav2 = dualtree_first_stage('db5')
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        # Since it is tested that wav1 == Wavelet('db5'), 
-        # only test that wav2 is a perfect reconstruction filter
-
-        a, d = pywt.dwt(data = array, wavelet = wav2)
-        rec = pywt.idwt(cA = a, cD = d, wavelet = wav2)
-        self.assertTrue(n.allclose(array, rec))
+        """ Test of perfect reconstruction of first stage wavelets. """
+        for wavelet in ALL_FIRST_STAGE:
+            for wav in dualtree_first_stage(wavelet):
+                # Using waverec and wavedec instead of dwt and idwt because parameters
+                # don't need as much parsing.
+                self.assertTrue(n.allclose( self.array, pywt.waverec(pywt.wavedec(self.array, wav), wav) ))
     
     def test_kingsbury99_fs(self):
         """ Test for perfect reconstruction """
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        wav1, wav2 = kingsbury99_fs()
-        for wav in (wav1, wav2):
-            a, d = pywt.dwt(data = array, wavelet = wav)
+        for wav in kingsbury99_fs():
+            a, d = pywt.dwt(data = self.array, wavelet = wav)
             rec = pywt.idwt(cA = a, cD = d, wavelet = wav)
-            self.assertTrue(n.allclose(array, rec))
+            self.assertTrue(n.allclose(self.array, rec))
     
     def test_kingsbury99(self):
         """ Test for perfect reconstruction """
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        wav1, wav2 = kingsbury99()
-        for wav in (wav1, wav2):
-            a, d = pywt.dwt(data = array, wavelet = wav)
+        for wav in kingsbury99():
+            a, d = pywt.dwt(data = self.array, wavelet = wav)
             rec = pywt.idwt(cA = a, cD = d, wavelet = wav)
-            self.assertTrue(n.allclose(array, rec))
+            self.assertTrue(n.allclose(self.array, rec))
 
 class TestDualTree(unittest.TestCase):
+
+    def setUp(self):
+        self.array = n.sin(n.arange(0, 10, step = 0.01))
+    
+    def test_perfect_reconstruction_level_0(self):
+        coeffs = dualtree(data = self.array, level = 0)
+        reconstructed = idualtree(coeffs = coeffs)
+        self.assertTrue(n.allclose(self.array, reconstructed))
     
     def test_perfect_reconstruction_level_1(self):
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        coeffs = dualtree(data = array, level = 1)
-        reconstructed = idualtree(coeffs = coeffs)
-        self.assertTrue(n.allclose(array, reconstructed))
+        for first_stage in ALL_FIRST_STAGE:
+            coeffs = dualtree(data = self.array, level = 1, first_stage = first_stage)
+            reconstructed = idualtree(coeffs = coeffs, first_stage = first_stage)
+            self.assertTrue(n.allclose(self.array, reconstructed))
 
+    @unittest.skip
     def test_perfect_reconstruction_multilevel(self):
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        coeffs = dualtree(data = array, level = 3)
-        reconstructed = idualtree(coeffs = coeffs)
-        self.assertTrue(n.allclose(array, reconstructed))
+        for first_stage in ALL_FIRST_STAGE:
+            for wavelet in ALL_COMPLEX_WAV:
+                for level in range(1, dualtree_max_level(data = self.array, first_stage = first_stage, wavelet = wavelet)):
+                    coeffs = dualtree(data = self.array, level = level, first_stage = first_stage, wavelet = wavelet)
+                    reconstructed = idualtree(coeffs = coeffs, first_stage = first_stage, wavelet = wavelet)
+                    self.assertTrue(n.allclose(self.array, reconstructed))
     
-    def test_perfect_reconstruction_max_level(self):
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        coeffs = dualtree(data = array, level = 'max')
-        reconstructed = idualtree(coeffs = coeffs)
-        self.assertTrue(n.allclose(array, reconstructed))
-    
+    @unittest.skip
     def test_dt_approx_and_detail_rec(self):
-        array = n.sin(n.arange(0, 10, step = 0.01))
-        low_freq = approx_rec(array = array, level = 'max')
-        high_freq = detail_rec(array = array, level = 'max')
-        self.assertTrue(n.allclose(array, low_freq + high_freq))
+        for first_stage in ALL_FIRST_STAGE:
+            for wavelet in ALL_COMPLEX_WAV:
+                low_freq = approx_rec(array = self.array, level = 'max', first_stage = first_stage, wavelet = wavelet)
+                high_freq = detail_rec(array = self.array, level = 'max', first_stage = first_stage, wavelet = wavelet)
+                self.assertTrue(n.allclose(self.array, low_freq + high_freq))
 
 if __name__ == '__main__':
     unittest.main()

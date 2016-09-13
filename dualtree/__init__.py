@@ -47,10 +47,10 @@ References
 
 [2] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
-from .dtcwt import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level
-from .algorithms import baseline, denoise
-from .discrete import baseline_dwt, denoise_dwt
-from .wavelets import dualtree_wavelet, dualtree_first_stage
+from ._dtcwt import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level
+from ._algorithms import baseline, denoise
+from ._discrete import baseline_dwt, denoise_dwt
+from ._wavelets import dualtree_wavelet, dualtree_first_stage, ALL_FIRST_STAGE, ALL_COMPLEX_WAV
 
 __all__ = ['dualtree', 'idualtree', 'approx_rec', 'detail_rec', 'dualtree_max_level', 'baseline', 
            'denoise', 'baseline_dwt', 'denoise_dwt', 'dualtree_wavelet', 'dualtree_first_stage']

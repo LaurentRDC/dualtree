@@ -1,5 +1,5 @@
 
-from dualtree.discrete import baseline_dwt, denoise_dwt, approx_rec_dwt
+from dualtree import baseline_dwt, denoise_dwt, approx_rec_dwt
 import numpy as n
 import unittest
 

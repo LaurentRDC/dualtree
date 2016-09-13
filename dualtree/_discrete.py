@@ -18,7 +18,7 @@ References
 ----------
 [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
-from .dtcwt import DEFAULT_MODE
+from ._dtcwt import DEFAULT_MODE
 import numpy as n
 import pywt
 from warnings import warn

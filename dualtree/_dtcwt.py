@@ -21,7 +21,7 @@ References
 
 import numpy as n
 from pywt import dwt, idwt, dwt_max_level
-from .wavelets import dualtree_wavelet, dualtree_first_stage
+from ._wavelets import dualtree_wavelet, dualtree_first_stage
 
 __all__ = ['dualtree', 'idualtree', 'dualtree_max_level', 'approx_rec', 'detail_rec']
 
@@ -39,10 +39,10 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     data: array_like
         Input data. Only 1D arrays are supported for now. 2D support is planned.
     first_stage : str, optional
-        Wavelet to use for the first stage. See dualtree.wavelets.ALL_FIRST_STAGE for a list of suitable arguments
+        Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of suitable arguments
     wavelet : str, optional
         Wavelet to use in stages > 1. Must be appropriate for the dual-tree complex wavelet transform.
-        See dualtree.wavelets.ALL_COMPLEX_WAV for possible
+        See dualtree.ALL_COMPLEX_WAV for possible
     level : int or 'max', optional
         Decomposition level (must be >= 0). If level is 'max' (default) then it
         will be calculated using the ``dwt_max_level`` function.
@@ -92,7 +92,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     elif level < 0:
         raise ValueError('Invalid level value {}. Must be a nonnegative integer.'.format(level))
     elif level == 0:
-        return data
+        return [data]
     
     real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode)
     imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode)
@@ -109,10 +109,10 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
     coeffs : array_like
         Coefficients list [cAn, cDn, cDn-1, ..., cD2, cD1]
     first_stage : str, optional
-        Wavelet to use for the first stage. See dualtree.wavelets.ALL_FIRST_STAGE for a list of possible arguments.
+        Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of possible arguments.
     wavelet : str, optional
         Wavelet to use in stages > 1. Must be appropriate for the dual-tree complex wavelet transform.
-        See dualtree.wavelets.ALL_COMPLEX_WAV for possible arguments.
+        See dualtree.ALL_COMPLEX_WAV for possible arguments.
     mode : str, optional
         Signal extension mode, see Modes.
     
@@ -138,17 +138,17 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
     ----------
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
-    real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    real_first, imag_first = dualtree_first_stage(first_stage)
-
     if len(coeffs) < 1:
         raise ValueError(
             "Coefficient list too short (minimum 1 array required).")
-    elif len(coeffs) == 1: # level 0 transform
-        return coeffs[0]
-    
-    real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
-    imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
+    elif len(coeffs) == 1: # level 0 inverse transform
+        real, imag = coeffs[0], coeffs[0]
+    else:
+        real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
+        real_first, imag_first = dualtree_first_stage(first_stage)
+
+        real = _single_tree_synthesis(coeffs = [n.real(coeff) for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
+        imag = _single_tree_synthesis(coeffs = [n.imag(coeff) for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
     
     return n.sqrt(2)*(real + imag)/2
 
@@ -164,11 +164,14 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         Decomposition level. A higher level will result in a coarser approximation of
         the input array. If the level is higher than the maximum possible decomposition level,
         the maximum level is used.
-        If None, the maximum possible decomposition level is used.
-    wavelet : str or Wavelet object
-        Can be any argument accepted by PyWavelet.Wavelet, e.g. 'db10'
-    mask : ndarray
+        If 'max', the maximum possible decomposition level is used.
+    first_stage : str, optional
+        First-stage wavelet to use. See dualtree.ALL_FIRST_STAGE for possible arguments.
+    wavelet : str, optional
+        Complex wavelet to use in late stages. See dualtree.ALL_COMPLEX_WAV for possible arguments.
+    mask : ndarray or None, optional.
         Same shape as array. Must evaluate to True where data is invalid.
+        If None (default), a trivial mask is used.
             
     Returns
     -------
@@ -182,16 +185,7 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     NotImplementedError
         If input array has dimension 2 
     """
-    array = n.asarray(array, dtype = n.float)
     
-    dim = array.ndim
-    if dim > 2:
-        raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
-    elif dim == 2:
-        raise NotImplementedError('Only 1D signals are currently supported.')
-            
-    # By now, we are sure that the decomposition level will be supported.
-    # Decompose the signal using the multilevel discrete wavelet transform
     coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
     
@@ -234,17 +228,8 @@ def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     --------
     approx_rec 
     """
-    array = n.asarray(array, dtype = n.float)
-    
-    dim = array.ndim
-    if dim > 2:
-        raise ValueError('Signal dimensions {} larger than 2 is not supported.'.format(dim))
-    elif dim == 2:
-        raise NotImplementedError('Only 1D signals are currently supported.')
-
     coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs = n.zeros_like(coeffs[0], dtype = n.complex) 
-
     reconstructed = idualtree(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = DEFAULT_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
 

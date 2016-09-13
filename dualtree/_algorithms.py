@@ -15,7 +15,7 @@ References
 ----------
 [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
-from .dtcwt import approx_rec, DEFAULT_FIRST_STAGE, DEFAULT_CMP_WAV
+from ._dtcwt import approx_rec, DEFAULT_FIRST_STAGE, DEFAULT_CMP_WAV
 import numpy as n
 
 __all__ = ['baseline', 'denoise']
