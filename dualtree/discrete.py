@@ -86,7 +86,7 @@ def baseline_dwt(array, max_iter, level = 'max', wavelet = 'sym6', background_re
             signal[index] = array[index]
         
         # Wavelet reconstruction using approximation coefficients
-        background = approx_rec_dwt(array = signal, level = level, wavelet = wavelet, mask = mask)
+        background = _approx_rec_dwt(array = signal, level = level, wavelet = wavelet, mask = mask)
         
         # Modify the signal so it cannot be more than the background
         # This reduces the influence of the peaks in the wavelet decomposition
@@ -122,9 +122,9 @@ def denoise_dwt(array, level = 2, wavelet = 'db5', mask = None):
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
 
-    return approx_rec_dwt(array = array, level = level, wavelet = wavelet, mask = mask)
+    return _approx_rec_dwt(array = array, level = level, wavelet = wavelet, mask = mask)
 
-def approx_rec_dwt(array, level, wavelet, mask = None):
+def _approx_rec_dwt(array, level, wavelet, mask = None):
     """
     Approximate reconstruction of a signal/image. Uses the multi-level discrete wavelet 
     transform to decompose a signal or an image, and reconstruct it using approximate 
