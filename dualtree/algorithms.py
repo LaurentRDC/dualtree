@@ -15,14 +15,14 @@ References
 ----------
 [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
-from dualtree import dt_approx_rec, DEFAULT_FIRST_STAGE, DEFAULT_CMP_WAV
+from .dtcwt import approx_rec, DEFAULT_FIRST_STAGE, DEFAULT_CMP_WAV
 import numpy as n
 
 __all__ = ['baseline', 'denoise']
 
 def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, background_regions = [], mask = None):
     """
-    Iterative method of baseline determination modified from [1].
+    Iterative method of baseline determination based on the dual-tree complex wavelet transform.
     
     Parameters
     ----------
@@ -62,10 +62,17 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
     
     Raises
     ------
+    NotImplementedError
+        If input is a 2D array
     ValueError
         If input array is neither 1D nor 2D.
     """
     array = n.asarray(array, dtype = n.float)
+    if array.ndim == 2:
+        raise NotImplementedError('2D baseline determination is planned but not supported.')
+    elif array.ndim > 2:
+        raise ValueError('{}D baseline determination is not supported.'.format(array.ndim))
+
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
     
@@ -79,7 +86,7 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
             signal[index] = array[index]
         
         # Wavelet reconstruction using approximation coefficients
-        background = dt_approx_rec(array = signal, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)
+        background = approx_rec(array = signal, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)
         
         # Modify the signal so it cannot be more than the background
         # This reduces the influence of the peaks in the wavelet decomposition
@@ -91,12 +98,12 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
 
 def denoise(array, level = 2, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
     """
-    Denoise an array using the wavelet transform.
+    Denoise an array using the dual-tree complex wavelet transform.
     
     Parameters
     ----------
-    array : ndarray, shape (M,N)
-        Data with background. Can be either 1D signal or 2D array.
+    array : ndarray, ndim 1
+        Data with background. 2D array support is in the works.
     level : int, optional
         Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
     wavelet : PyWavelet.Wavelet object or str, optional
@@ -108,11 +115,21 @@ def denoise(array, level = 2, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAU
     denoised : ndarray, shape (M,N)
 
     Raises
-    ------    
+    ------
+    NotImplementedError
+        If input array has dimension 2
     ValueError
         If input array has dimension > 2
     """
+    #TODO: automatically determine 'level' by iterating; if the array hasn't
+    # changed much at a certain level, go a level further?
+    array = n.asarray(array)
+    if array.ndim == 2:
+        raise NotImplementedError('2D array support is planned but not implemented.')
+    elif array.ndim > 2:
+        raise ValueError('{}D array denoising is not supported.'.format(array.ndim))
+    
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
-
-    return dt_approx_rec(array = array, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)
+    
+    return approx_rec(array = array, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)

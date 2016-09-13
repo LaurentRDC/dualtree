@@ -1,24 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-This module implements the algorithm presented in [1] and extends it to work on both 1D and 2D data.
+This module implements the algorithm presented in [1] and extends it to work on 2D data.
 
 Author: Laurent P. René de Cotret
+
+Functions
+---------
+baseline_dwt
+    Baseline determination of signals using the discrete wavelet transform. Provided for comparison
+    with the dual-tree equivalent 'baseline'. Algorithm described in [1].
+
+denoise_dwt
+    Denoising of signals using the discrete wavelet transform. Provided for comparison
+    with the dual-tree equivalent 'denoise'.
 
 References
 ----------
 [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
 """
-
+from .dtcwt import DEFAULT_MODE
 import numpy as n
 import pywt
 from warnings import warn
 
-__all__ = ['baseline', 'denoise']
+__all__ = ['baseline_dwt', 'denoise_dwt']
 
-EXTENSION_MODE = 'constant'
 FUNC_DICT = {1: (pywt.wavedec, pywt.waverec), 2: (pywt.wavedec2, pywt.waverec2)}    # Decomposition and recomposition functions based on dimensionality
 
-def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
+def baseline_dwt(array, max_iter, level = 'max', wavelet = 'sym6', background_regions = [], mask = None):
     """
     Iterative method of baseline determination from [1]. This function handles both 1D curves and 2D images.
     
@@ -77,7 +86,7 @@ def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_region
             signal[index] = array[index]
         
         # Wavelet reconstruction using approximation coefficients
-        background = approx_rec(array = signal, level = level, wavelet = wavelet, mask = mask)
+        background = approx_rec_dwt(array = signal, level = level, wavelet = wavelet, mask = mask)
         
         # Modify the signal so it cannot be more than the background
         # This reduces the influence of the peaks in the wavelet decomposition
@@ -87,7 +96,7 @@ def baseline(array, max_iter, level = 'max', wavelet = 'sym6', background_region
     background[mask] = 0  
     return background
 
-def denoise(array, level = 2, wavelet = 'db5', mask = None):
+def denoise_dwt(array, level = 2, wavelet = 'db5', mask = None):
     """
     Denoise an array using the wavelet transform.
     
@@ -113,9 +122,9 @@ def denoise(array, level = 2, wavelet = 'db5', mask = None):
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
 
-    return approx_rec(array = array, level = level, wavelet = wavelet, mask = mask)
+    return approx_rec_dwt(array = array, level = level, wavelet = wavelet, mask = mask)
 
-def approx_rec(array, level, wavelet, mask = None):
+def approx_rec_dwt(array, level, wavelet, mask = None):
     """
     Approximate reconstruction of a signal/image. Uses the multi-level discrete wavelet 
     transform to decompose a signal or an image, and reconstruct it using approximate 
@@ -170,7 +179,7 @@ def approx_rec(array, level, wavelet, mask = None):
         
     # By now, we are sure that the decomposition level will be supported.
     # Decompose the signal using the multilevel discrete wavelet transform
-    coeffs = dec_func(data = array, wavelet = wavelet, level = level, mode = EXTENSION_MODE)
+    coeffs = dec_func(data = array, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
     
     # Replace detail coefficients by 0; keep the correct length so that the

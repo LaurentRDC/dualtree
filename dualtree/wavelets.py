@@ -11,10 +11,10 @@ import numpy as n
 from os.path import join, dirname
 from pywt import Wavelet, wavelist
 
-__all__ = ['dualtree_wavelet', 'dt_first_stage']
+__all__ = ['dualtree_wavelet', 'dualtree_first_stage']
 
 DATADIR = join(dirname(__file__), 'data')
-ALL_QSHIFT = ('qshift_a', 'qshift_b', 'qshift_c', 'qshift_d')
+ALL_QSHIFT = ('qshift1', 'qshift2', 'qshift3', 'qshift4')
 ALL_COMPLEX_WAV = ('kingsbury99',) + ALL_QSHIFT
 ALL_FIRST_STAGE = ('kingsbury99_fs',) + tuple([wav for wav in wavelist() if wav != 'dmey'])
 
@@ -44,7 +44,7 @@ def dualtree_wavelet(name):
     
     return qshift(name)
 
-def dt_first_stage(wavelet = 'kingsbury99_fs'):
+def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     """
     Returns two wavelets to be used in the dual-tree complex wavelet transform, at the first stage.
 

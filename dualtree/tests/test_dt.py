@@ -1,5 +1,5 @@
-from dualtree import dualtree, idualtree, dt_approx_rec, dt_detail_rec
-from wavelets import dualtree_wavelet, dt_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
+from dualtree import dualtree, idualtree, approx_rec, detail_rec
+from dualtree.wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, qshift, ALL_QSHIFT
 
 import numpy as n
 import pywt
@@ -22,16 +22,15 @@ class TestComplexWavelets(unittest.TestCase):
         array = n.sin(n.arange(0, 10, step = 0.01))
         for wavelet in pywt.wavelist():
             try:
-                wav1, wav2 = dt_first_stage(wavelet)
+                wav1, wav2 = dualtree_first_stage(wavelet)
             except(ValueError):  #Invalid wavelet
                 continue
             for wav in (wav2, wav2):
                 if not n.allclose( array, pywt.waverec(pywt.wavedec(array, wav), wav) ):
                     print(wav)
-
-    #@unittest.expectedFailure
+    
     def test_first_stage_reconstruction(self):
-        wav1, wav2 = dt_first_stage('db5')
+        wav1, wav2 = dualtree_first_stage('db5')
         array = n.sin(n.arange(0, 10, step = 0.01))
         # Since it is tested that wav1 == Wavelet('db5'), 
         # only test that wav2 is a perfect reconstruction filter
@@ -80,8 +79,8 @@ class TestDualTree(unittest.TestCase):
     
     def test_dt_approx_and_detail_rec(self):
         array = n.sin(n.arange(0, 10, step = 0.01))
-        low_freq = dt_approx_rec(array = array, level = 'max')
-        high_freq = dt_detail_rec(array = array, level = 'max')
+        low_freq = approx_rec(array = array, level = 'max')
+        high_freq = detail_rec(array = array, level = 'max')
         self.assertTrue(n.allclose(array, low_freq + high_freq))
 
 if __name__ == '__main__':
