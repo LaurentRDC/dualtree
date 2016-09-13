@@ -169,13 +169,9 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     NotImplementedError
         If input array has dimension 2 
     """
-    
     coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = DEFAULT_MODE)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
     
-    # Replace detail coefficients by 0 + 0*1j; keep the correct length so that the
-    # reconstructed signal has the same size as the (possibly upsampled) signal
-    # The structure of coefficients depends on the dimensionality
     det_coeffs = [n.zeros_like(det, dtype = n.complex) for det in det_coeffs]
     reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = DEFAULT_MODE)
     return n.resize(reconstructed, new_shape = array.shape)

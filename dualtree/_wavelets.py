@@ -129,6 +129,7 @@ def _qshift(name):
 #                           EXAMPLE COMPLEX WAVELETS FROM
 #               http://eeweb.poly.edu/iselesni/WaveletSoftware/dt1D.html 
 #############################################################################################
+@lru_cache(maxsize = 1)
 def kingsbury99_fs():
     """
     Returns a first-stage complex wavelet as published in [1]. 
@@ -150,6 +151,7 @@ def kingsbury99_fs():
 
     return Wavelet(name = 'real:', filter_bank = real_fb), Wavelet(name = 'imag:', filter_bank = imag_fb)
 
+@lru_cache(maxsize = 1)
 def kingsbury99():
     """
     Returns a late-stage complex wavelet as published in [1].
