@@ -3,10 +3,18 @@ Extension of PyWavelets to complex wavelets suitable for the Dual-Tree Complex W
 
 Author : Laurent P. René de Cotret
 """
-from functools import lru_cache
 import numpy as n
 from os.path import join, dirname
 from pywt import Wavelet, wavelist
+from warnings import warn
+
+# lru_cache only exists as of Python 3.2
+try:
+    from functools import lru_cache
+except ImportError:
+    warn('functools.lru_cache could not be found. Performance will be affected.', ImportWarning)
+    def lru_cache(func, *args, **kwargs): return func
+    
 
 __all__ = ['dualtree_wavelet', 'dualtree_first_stage']
 
