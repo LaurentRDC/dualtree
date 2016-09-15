@@ -1,5 +1,5 @@
 
-from dualtree import baseline_dwt, denoise_dwt, approx_rec_dwt
+from dualtree import baseline_dwt, denoise_dwt
 import numpy as n
 import unittest
 
@@ -19,7 +19,7 @@ class TestEdgeCases(object):
 
     def test_zero_level(self):
         # Since all function are based on approx_rec_dwt, we only need to test level = 0 for approx_rec_dwt
-        self.assertTrue(n.allclose(self.array, approx_rec_dwt(self.array, level = 0, wavelet = 'db1')))
+        self.assertTrue(n.allclose(self.array, baseline_dwt(self.array, max_iter = 1, level = 0, wavelet = 'db1')))
 
 class TestEdgeCases1D(Test1D, TestEdgeCases): pass
 

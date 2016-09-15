@@ -186,5 +186,5 @@ def _approx_rec_dwt(array, level, wavelet, mask = None):
             zeroed.append( (n.zeros_like(cHn), n.zeros_like(cVn), n.zeros_like(cDn)) )
         
     # Reconstruct signal
-    reconstructed = rec_func([app_coeffs] + zeroed, wavelet = wavelet, mode = EXTENSION_MODE)
+    reconstructed = rec_func([app_coeffs] + zeroed, wavelet = wavelet, mode = DEFAULT_MODE)
     return n.resize(reconstructed, new_shape = array.shape)
