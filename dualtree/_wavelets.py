@@ -9,12 +9,14 @@ from pywt import Wavelet, wavelist
 from warnings import warn
 
 # lru_cache only exists as of Python 3.2
+def _trivial_decorator(func, *args, **kwargs):
+    return func
 try:
     from functools import lru_cache
 except ImportError:
     warn('functools.lru_cache could not be found. Performance will be affected.', ImportWarning)
-    def lru_cache(func, *args, **kwargs): return func
-    
+    lru_cache = _trivial_decorator
+
 
 __all__ = ['dualtree_wavelet', 'dualtree_first_stage']
 
