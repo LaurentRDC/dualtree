@@ -18,9 +18,9 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
         Data with background. Can be either 1D signal or 2D array.
     max_iter : int
         Number of iterations to perform.
-    level : int or None, optional
+    level : int or 'max', optional
         Decomposition level. A higher level will result in a coarser approximation of
-        the input signal (read: a lower frequency baseline). If None (default), the maximum level
+        the input signal (read: a lower frequency baseline). If 'max' (default), the maximum level
         possible is used.
     wavelet : PyWavelet.Wavelet object or str, optional
         Wavelet with which to perform the algorithm. See PyWavelet documentation
@@ -88,7 +88,7 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
     background[mask] = 0  
     return background
 
-def denoise(array, level = 2, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
+def denoise(array, level = 1, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
     """
     Denoise an array using the dual-tree complex wavelet transform.
     

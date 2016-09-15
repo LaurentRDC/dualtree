@@ -10,7 +10,7 @@ from ._wavelets import dualtree_wavelet, dualtree_first_stage
 __all__ = ['dualtree', 'idualtree', 'dualtree_max_level', 'approx_rec', 'detail_rec']
 
 DEFAULT_MODE = 'constant'
-DEFAULT_FIRST_STAGE = 'kingsbury99_fs'
+DEFAULT_FIRST_STAGE = 'sym4'
 DEFAULT_CMP_WAV = 'qshift3'
 
 #TODO: extend to 2D
@@ -78,8 +78,8 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     elif level == 0:
         return [data]
     
-    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode)
-    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode)
+    real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode, axis = -1)
+    imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode, axis = -1)
 
     # Combine coefficients into complex form
     return [real + 1j*imag for real, imag in zip(real_coeffs, imag_coeffs)]
@@ -131,8 +131,8 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
         real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
         real_first, imag_first = dualtree_first_stage(first_stage)
 
-        real = _single_tree_synthesis(coeffs = [coeff.real for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode)
-        imag = _single_tree_synthesis(coeffs = [coeff.imag for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode)
+        real = _single_tree_synthesis(coeffs = [coeff.real for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode, axis = -1)
+        imag = _single_tree_synthesis(coeffs = [coeff.imag for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode, axis = -1)
     
     return n.sqrt(2)*(real + imag)/2
 
@@ -242,7 +242,7 @@ def _altern_wavelet(wavelets, level = 1):
         yield wavelets[(level + 1) % 2]
         yield wavelets[level % 2]
 
-def _single_tree_analysis(data, first_stage, wavelet, level, mode):
+def _single_tree_analysis(data, first_stage, wavelet, level, mode, axis = -1):
     """
     Single tree of the forward dual-tree complex wavelet transform.
 
@@ -258,6 +258,9 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
 
     mode : str
 
+    axis : int, optional
+        Axis over which to compute. Default is last axis
+
     Returns
     -------
     [cA_n, cD_n, cD_n-1, ..., cD2, cD1] : list
@@ -269,7 +272,7 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
     approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode)    
     coeffs_list = list()
     for i, wav in zip(range(level - 1), _altern_wavelet(wavelet)):
-        approx, detail = dwt(data = approx, wavelet = wav, mode = mode)
+        approx, detail = dwt(data = approx, wavelet = wav, mode = mode, axis = axis)
         coeffs_list.append(detail)
     
     # Format list ot be compatible to PyWavelet's format. See pywt.wavedec documentation.
@@ -279,7 +282,7 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode):
 
     return coeffs_list
 
-def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
+def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis = -1):
     """
     Single tree of the inverse dual-tree complex wavelet transform.
 
@@ -292,6 +295,9 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     wavelet : 2-tuple of Wavelet object
 
     mode : str
+
+    axis : int, optional
+        Axis over which to compute. Default is last axis
 
     Returns
     -------
@@ -313,4 +319,4 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode):
     if len(approx) == len(first_stage_detail) + 1:
         approx = approx[:-1]
     
-    return idwt(cA = approx, cD = first_stage_detail, wavelet = first_stage, mode = mode)
+    return idwt(cA = approx, cD = first_stage_detail, wavelet = first_stage, mode = mode, axis = axis)
