@@ -11,7 +11,7 @@ __all__ = ['dualtree', 'idualtree', 'dualtree_max_level', 'approx_rec', 'detail_
 
 DEFAULT_MODE = 'constant'
 DEFAULT_FIRST_STAGE = 'sym4'
-DEFAULT_CMP_WAV = 'qshift3'
+DEFAULT_CMP_WAV = 'qshift4'
 
 #TODO: extend to 2D
 def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = DEFAULT_MODE, axis = -1):
@@ -29,9 +29,11 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
         See dualtree.ALL_COMPLEX_WAV for possible
     level : int or 'max', optional
         Decomposition level (must be >= 0). If level is 'max' (default) then it
-        will be calculated using the ``dwt_max_level`` function.
+        will be calculated using the ``dualtree_max_level`` function.
     mode : str, optional
-        Signal extension mode, see pywt.Modes. Default is 'constant'.
+        Signal extension mode, see pywt.Modes.
+    axis : int, optional
+        Axis over which to compute the transform. Default is -1
 
     Returns
     -------
@@ -43,10 +45,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     
     Raises
     ------
-    NotImplementedError
-        If input array has dimension 2
     ValueError
-        Raised if the input array has dimension > 2
         Raised if level < 0
     
     Notes
@@ -63,11 +62,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
     data = n.asarray(data, dtype = n.float)/n.sqrt(2)
-    if data.ndim == 2:
-        raise NotImplementedError('Dual-tree complex wavelet transform is not yet implemented for 2D arrays.')
-    elif data.ndim > 2:
-        raise ValueError('Dual-tree complex wavelet transform is not supported for {}D arrays'.format(array.ndim))
-
+    
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dualtree_first_stage(first_stage)
 
@@ -98,8 +93,10 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
         Wavelet to use in stages > 1. Must be appropriate for the dual-tree complex wavelet transform.
         See dualtree.ALL_COMPLEX_WAV for possible arguments.
     mode : str, optional
-        Signal extension mode, see Modes.
-    
+        Signal extension mode, see pywt.Modes.
+    axis : int, optional
+        Axis over which to compute the inverse transform.
+        
     Returns
     -------
     reconstructed : ndarray
@@ -155,6 +152,9 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     mask : ndarray or None, optional.
         Same shape as array. Must evaluate to True where data is invalid.
         If None (default), a trivial mask is used.
+    axis : int, optional
+        Axis over which to compute the transform. Default is -1
+        
             
     Returns
     -------
@@ -190,6 +190,9 @@ def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         Can be any argument accepted by PyWavelet.Wavelet, e.g. 'db10'
     mask : ndarray
         Same shape as array. Must evaluate to True where data is invalid.
+    axis : int, optional
+        Axis over which to compute the transform. Default is -1
+        
             
     Returns
     -------
@@ -212,7 +215,7 @@ def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     reconstructed = idualtree(coeffs = [app_coeffs] + coeffs[1:], first_stage = first_stage, wavelet = wavelet, mode = DEFAULT_MODE, axis = axis)
     return n.resize(reconstructed, new_shape = array.shape)
 
-def dualtree_max_level(data, first_stage, wavelet):
+def dualtree_max_level(data, first_stage, wavelet, axis = -1):
     """
     Returns the maximum decomposition level from the dual-tree complex wavelet transform.
 
@@ -224,13 +227,16 @@ def dualtree_max_level(data, first_stage, wavelet):
         Wavelet used in the first stage of the dual-tree cwt. See pywt.wavelist() for suitable arguments.
     wavelet : str
         Dual-tree complex wavelet to use. Argument must be supported by dualtree_wavelet
+    axis : int, optional
+        Axis over which to compute the transform. Default is -1
+        
     
     Returns
     -------
     max_level : int
     """
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
-    return dwt_max_level(data_len = min(data.shape), filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len]))
+    return dwt_max_level(data_len = data.shape[axis], filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len]))
 
 ##############################################################################
 #           SINGLE TREE OF THE TRANSFORM
@@ -309,7 +315,7 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis):
     # late stage reconstruction
     approx, detail_coeffs = late_stage_coeffs[0], late_stage_coeffs[1:]
     for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level)):
-        if len(approx) == len(detail) + 1:  # As done in pywt.wavedec
+        if len(approx) == len(detail) + 1:      # As done in pywt.waverec
             approx = approx[:-1]
         approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode)
     

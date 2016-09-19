@@ -40,8 +40,7 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
         Default is empty list.
     
     mask : ndarray, dtype bool, optional
-        Mask array that evaluates to True for pixels that are invalid. Useful to determine which pixels are masked
-        by a beam block.
+        Mask array that evaluates to True for pixels that are invalid. 
     
     Returns
     -------

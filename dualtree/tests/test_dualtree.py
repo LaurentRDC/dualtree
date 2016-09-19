@@ -68,6 +68,12 @@ class TestDualTree(unittest.TestCase):
                 low_freq = approx_rec(array = self.array, level = 'max', first_stage = first_stage, wavelet = wavelet)
                 high_freq = detail_rec(array = self.array, level = 'max', first_stage = first_stage, wavelet = wavelet)
                 self.assertTrue(n.allclose(self.array, low_freq + high_freq))
+    
+    @unittest.skip
+    def test_over_axis(self):
+        array = self.array * n.ones(shape = (100, 1))
+        self.assertTrue(n.allclose( dualtree(self.array), dualtree(array, axis = 0) ))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,22 +8,23 @@ from os.path import join, dirname
 from pywt import Wavelet, wavelist
 from warnings import warn
 
+__all__ = ['dualtree_wavelet', 'dualtree_first_stage']
+
+DATADIR = join(dirname(__file__), 'data')
+ALL_QSHIFT = ('qshift1', 'qshift2', 'qshift3', 'qshift4', 'qshift5', 'qshift6')
+ALL_COMPLEX_WAV = ('kingsbury99',) + ALL_QSHIFT
+ALL_FIRST_STAGE = ('kingsbury99_fs',) + tuple([wav for wav in wavelist() if wav != 'dmey'])
+
 # lru_cache only exists as of Python 3.2
+# In case it cannot be found, use a trivial decorator
 def _trivial_decorator(func, *args, **kwargs):
     return func
+
 try:
     from functools import lru_cache
 except ImportError:
     warn('functools.lru_cache could not be found. Performance will be affected.', ImportWarning)
     lru_cache = _trivial_decorator
-
-
-__all__ = ['dualtree_wavelet', 'dualtree_first_stage']
-
-DATADIR = join(dirname(__file__), 'data')
-ALL_QSHIFT = ('qshift1', 'qshift2', 'qshift3', 'qshift4')
-ALL_COMPLEX_WAV = ('kingsbury99',) + ALL_QSHIFT
-ALL_FIRST_STAGE = ('kingsbury99_fs',) + tuple([wav for wav in wavelist() if wav != 'dmey'])
 
 @lru_cache(maxsize = len(ALL_COMPLEX_WAV))
 def dualtree_wavelet(name):
