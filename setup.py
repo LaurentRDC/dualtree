@@ -2,7 +2,7 @@ from setuptools import setup
 from os.path import dirname, join
 
 # Read the license file into a single string
-with open(join(dirname(__file__), 'license.txt')) as license_file:
+with open(join(dirname(__file__), 'LICENSE.txt')) as license_file:
     lic = license_file.read().replace('\n', '')
 
 setup(name = 'dualtree',
@@ -14,6 +14,6 @@ setup(name = 'dualtree',
       packages = ['dualtree', 'dualtree.tests'],
       install_requires = ['numpy', 'PyWavelets'],
       package_data = {'dualtree': ['*.txt'],
-                      'dualtree': ['data/*.npz', 'data/*.npy']},
+                      'dualtree': ['data/*.npz']},
       license = lic
      )
