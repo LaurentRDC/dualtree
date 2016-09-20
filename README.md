@@ -35,19 +35,23 @@ wavelet appropriate for first-stage filtering during the dual-tree complex wavel
 ## Example
 
 We start with the base:
-    from dualtree import dualtre, idualtree, baseline
-    import matplotlib.pyplot as plt
+
+    >>> from dualtree import dualtre, idualtree, baseline
+    >>> import matplotlib.pyplot as plt
 
 Here is an example of getting the dual-tree complex wavelet transform coefficients from real data:
-    signal = n.load('~\data\diffraction.npy')                           # Included example electron diffraction data
-    coeffs = dualtree(signal, wavelet = 'qshift3', level = 4)
-    reconstructed = idualtree(coeffs = coeffs, wavelet = 'qshift3')     # level is inferred
-    n.allclose(signal, reconstructed)                                   # Check perfect reconstruction
+
+    >>> signal = n.load('~\data\diffraction.npy')                           # Included example electron diffraction data
+    >>> coeffs = dualtree(signal, wavelet = 'qshift3', level = 4)
+    >>> reconstructed = idualtree(coeffs = coeffs, wavelet = 'qshift3')     # level is inferred
+    >>> n.allclose(signal, reconstructed)                                   # Check perfect reconstruction
+    True
 
 Example of algorithm (baseline-determination) on a NumPy array:
-    signal = n.load('~\data\diffraction.npy')
-    background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
-    plt.plot(signal, '.k', background, '.r')
+
+    >>> signal = n.load('~\data\diffraction.npy')
+    >>> background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
+    >>> plt.plot(signal, '.k', background, '.r')
 
 ## TODO
 
