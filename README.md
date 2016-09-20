@@ -6,49 +6,48 @@ Python package, based on PyWavelets, implementing Nick Kingsbury's dual-tree com
 
 From the package docstrings:
 
-    dualtree, idualtree
-        Dual-tree complex wavelet transform (and its inverse) implemented using PyWavelets. Implementation
-        tricks from [1], such as first stage filtering and filter swapping at later stages, are also
-        included.
+* dualtree, idualtree
+    Dual-tree complex wavelet transform (and its inverse) implemented using PyWavelets. Implementation
+    tricks from [1], such as first stage filtering and filter swapping at later stages, are also
+    included.
 
-    approx_rec, detail_rec
-        Decomposition and recomposition of signals using only approximate or detail coefficients.
+* approx_rec, detail_rec
+    Decomposition and recomposition of signals using only approximate or detail coefficients.
 
-    dualtree_max_level
-        Maximal decomposition level of the dual-tree complex wavelet transform.
+* dualtree_max_level
+    Maximal decomposition level of the dual-tree complex wavelet transform.
 
-    baseline
-        Baseline determination of signals using the dual-tree complex wavelet transform. Modified algorithm
-        from [2].
+* baseline
+    Baseline determination of signals using the dual-tree complex wavelet transform. Modified algorithm
+    from [2].
 
-    denoise
-        Denoising of signals using the dual-tree complex wavelet transform.
+* denoise
+    Denoising of signals using the dual-tree complex wavelet transform.
 
-    dualtree_wavelet
-        Pair of real and imaginary wavelet that forms a complex wavelet appropriate for the dual-tree
-        complex wavelet transform.
+* dualtree_wavelet
+    Pair of real and imaginary wavelet that forms a complex wavelet appropriate for the dual-tree
+    complex wavelet transform.
 
-    dualtree_first_stage
-        Pair of real and imaginary wavelet, shifted by one sample with respect to one another, forming a complex
-        wavelet appropriate for first-stage filtering during the dual-tree complex wavelet transform.
+* dualtree_first_stage
+    Pair of real and imaginary wavelet, shifted by one sample with respect to one another, forming a complex
+    wavelet appropriate for first-stage filtering during the dual-tree complex wavelet transform.
 
 ## Example
 
 We start with the base:
-    >>> from dualtree import dualtre, idualtree, baseline
-    >>> import matplotlib.pyplot as plt
+    from dualtree import dualtre, idualtree, baseline
+    import matplotlib.pyplot as plt
 
 Here is an example of getting the dual-tree complex wavelet transform coefficients from real data:
-    >>> signal = n.load('~\data\diffraction.npy')                           # Included example electron diffraction data
-    >>> coeffs = dualtree(signal, wavelet = 'qshift3', level = 4)
-    >>> reconstructed = idualtree(coeffs = coeffs, wavelet = 'qshift3')     # level is inferred
-    >>> n.allclose(signal, reconstructed)                                   # Check perfect reconstruction
-    True
+    signal = n.load('~\data\diffraction.npy')                           # Included example electron diffraction data
+    coeffs = dualtree(signal, wavelet = 'qshift3', level = 4)
+    reconstructed = idualtree(coeffs = coeffs, wavelet = 'qshift3')     # level is inferred
+    n.allclose(signal, reconstructed)                                   # Check perfect reconstruction
 
 Example of algorithm (baseline-determination) on a NumPy array:
-    >>> signal = n.load('~\data\diffraction.npy')
-    >>> background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
-    >>> plt.plot(signal, '.k', background, '.r')
+    signal = n.load('~\data\diffraction.npy')
+    background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
+    plt.plot(signal, '.k', background, '.r')
 
 ## TODO
 
