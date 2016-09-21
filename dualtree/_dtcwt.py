@@ -273,7 +273,7 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode, axis):
         (`cA_n`) of the result is approximation coefficients array and the
         following elements (`cD_n` - `cD_1`) are details coefficients arrays.
     """
-    approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode)    
+    approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode, axis = axis)    
     coeffs_list = list()
     for i, wav in zip(range(level - 1), _altern_wavelet(wavelet)):
         approx, detail = dwt(data = approx, wavelet = wav, mode = mode, axis = axis)
@@ -317,7 +317,7 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis):
     for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level)):
         if len(approx) == len(detail) + 1:      # As done in pywt.waverec
             approx = approx[:-1]
-        approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode)
+        approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode, axis = axis)
     
     if len(approx) == len(first_stage_detail) + 1:
         approx = approx[:-1]

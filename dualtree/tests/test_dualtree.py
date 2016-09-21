@@ -8,7 +8,7 @@ import unittest
 n.random.seed(23)
 
 ##############################################################################
-###           DUAL-TREE COMPLEX WAVELET TRANSFORM
+###             COMPLEX WAVELET 
 ##############################################################################
 
 class TestComplexWavelets(unittest.TestCase):
@@ -38,10 +38,11 @@ class TestComplexWavelets(unittest.TestCase):
             rec = pywt.idwt(cA = a, cD = d, wavelet = wav)
             self.assertTrue(n.allclose(self.array, rec))
 
-class TestDualTree(unittest.TestCase):
+##############################################################################
+###           DUAL-TREE COMPLEX WAVELET TRANSFORM
+##############################################################################
 
-    def setUp(self):
-        self.array = n.sin(n.arange(0, 10, step = 0.01))
+class TestDualTree(object):
     
     def test_perfect_reconstruction_level_0(self):
         coeffs = dualtree(data = self.array, level = 0)
@@ -69,11 +70,26 @@ class TestDualTree(unittest.TestCase):
                 high_freq = detail_rec(array = self.array, level = 'max', first_stage = first_stage, wavelet = wavelet)
                 self.assertTrue(n.allclose(self.array, low_freq + high_freq))
     
-    @unittest.skip
-    def test_over_axis(self):
-        array = self.array * n.ones(shape = (100, 1))
-        self.assertTrue(n.allclose( dualtree(self.array), dualtree(array, axis = 0) ))
+    def test_axis(self):
+        pass
 
+###             1D AND 2D TESTS
+
+class Test1D(object):
+    def setUp(self):
+        self.array = n.sin(n.arange(0, 10, step = 0.01))
+
+class Test2D(object):
+    def setUp(self):
+        x = n.arange(0,1000).reshape((10,10))
+        self.array = n.sin(x)
+
+class TestDualTree1D(Test1D, unittest.TestCase, TestDualTree):
+    pass
+
+@unittest.SkipTest
+class TestDualTree2D(Test2D, unittest.TestCase, TestDualTree):
+    pass
 
 if __name__ == '__main__':
     unittest.main()

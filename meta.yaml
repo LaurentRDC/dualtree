@@ -4,9 +4,8 @@ package:
 
 
 source:
-  fn:  boost_1_61_0.tar.bz2
-  url: http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2
-  md5: 6095876341956f65f9d35939ccea1a9f
+  fn:  dualtree-0.6.win-amd64.zip
+  url: https://github.com/LaurentRDC/dualtree
 
 requirements:
   build:
