@@ -7,6 +7,7 @@ import unittest
 
 n.random.seed(23)
 
+
 ##############################################################################
 ###             COMPLEX WAVELET 
 ##############################################################################
@@ -43,6 +44,7 @@ class TestComplexWavelets(unittest.TestCase):
 ##############################################################################
 
 class TestDualTree(object):
+    """ Skeleton for 1D and 2D testing. Tests are run from subclasses. """
     
     def test_perfect_reconstruction_level_0(self):
         coeffs = dualtree(data = self.array, level = 0)
@@ -71,25 +73,28 @@ class TestDualTree(object):
                 self.assertTrue(n.allclose(self.array, low_freq + high_freq))
     
     def test_axis(self):
-        pass
+        for axis in range(0, self.array.ndim):
+            coeffs = dualtree(data = self.array, level = 2, axis = axis)
+            reconstructed = idualtree(coeffs = coeffs, axis = axis)
+            self.assertTrue(n.allclose(self.array, reconstructed))
+    
+    def test_axis_limits(self):
+        with self.assertRaises(ValueError):
+            coeffs = dualtree(data = self.array, level = 1, axis = self.array.ndim)
 
-###             1D AND 2D TESTS
+# Actual tests
 
-class Test1D(object):
+class Test1D(TestDualTree, unittest.TestCase):
     def setUp(self):
-        self.array = n.sin(n.arange(0, 10, step = 0.01))
+        self.array = n.random.random(size = (100,))
 
-class Test2D(object):
+class Test2D(TestDualTree, unittest.TestCase):
     def setUp(self):
-        x = n.arange(0,1000).reshape((10,10))
-        self.array = n.sin(x)
+        self.array = n.random.random(size = (100,100))
 
-class TestDualTree1D(Test1D, unittest.TestCase, TestDualTree):
-    pass
-
-@unittest.SkipTest
-class TestDualTree2D(Test2D, unittest.TestCase, TestDualTree):
-    pass
+class Test3D(TestDualTree, unittest.TestCase):
+    def setUp(self):
+        self.array = n.random.random(size = (10,10,10))
 
 if __name__ == '__main__':
     unittest.main()
