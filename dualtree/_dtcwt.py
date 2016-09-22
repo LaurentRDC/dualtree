@@ -13,10 +13,9 @@ DEFAULT_MODE = 'constant'
 DEFAULT_FIRST_STAGE = 'sym4'
 DEFAULT_CMP_WAV = 'qshift4'
 
-#TODO: extend to 2D
 def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = DEFAULT_MODE, axis = -1):
     """
-    1D dual-tree complex wavelet transform, implemented from [1].
+    Dual-tree complex wavelet transform, implemented from [1], along an axis. 
 
     Parameters
     ----------
@@ -82,7 +81,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
 
 def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = DEFAULT_MODE, axis = -1):
     """
-    1D inverse dual-tree complex wavelet transform implemented from [1].
+    Inverse dual-tree complex wavelet transform, implemented from [1], along an axis.
 
     Parameters
     ----------
@@ -150,24 +149,16 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         First-stage wavelet to use. See dualtree.ALL_FIRST_STAGE for possible arguments.
     wavelet : str, optional
         Complex wavelet to use in late stages. See dualtree.ALL_COMPLEX_WAV for possible arguments.
+    axis : int, optional
+        Axis over which to compute the transform. Default is -1.
     mask : ndarray or None, optional.
         Same shape as array. Must evaluate to True where data is invalid.
         If None (default), a trivial mask is used.
-    axis : int, optional
-        Axis over which to compute the transform. Default is -1
-        
             
     Returns
     -------
     reconstructed : ndarray
         Approximated reconstruction of the input array.
-    
-    Raises
-    ------    
-    ValueError
-        If input array has dimension > 2
-    NotImplementedError
-        If input array has dimension 2 
     """
     coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = mode, axis = axis)
     app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
@@ -176,7 +167,7 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = mode, axis = axis)
     return n.resize(reconstructed, new_shape = array.shape)
 
-def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None, axis = -1):
+def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, axis = -1, mask = None):
     """
     Detail reconstruction of a signal/image using the dual-tree approach.
     
@@ -187,25 +178,21 @@ def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     level : int or 'max'
         Decomposition level. 
         If None, the maximum possible decomposition level is used.
+    first_stage : str, optional
+        First-stage wavelet to use. See dualtree.ALL_FIRST_STAGE for possible arguments.
     wavelet : str or Wavelet object
-        Can be any argument accepted by PyWavelet.Wavelet, e.g. 'db10'
-    mask : ndarray
-        Same shape as array. Must evaluate to True where data is invalid.
+        Complex wavelet to use in late stages. See dualtree.ALL_COMPLEX_WAV for possible arguments.
     axis : int, optional
-        Axis over which to compute the transform. Default is -1
+        Axis over which to compute the transform. Default is -1.
+    mask : ndarray or None, optional.
+        Same shape as array. Must evaluate to True where data is invalid.
+        If None (default), a trivial mask is used.
         
             
     Returns
     -------
     reconstructed : ndarray
         Approximated reconstruction of the input array.
-    
-    Raises
-    ------    
-    ValueError
-        If input array has dimension > 2
-    NotImplementedError
-        If input array has dimension 2
 
     See Also
     --------
@@ -249,7 +236,20 @@ def _altern_wavelet(wavelets, level = 1):
         yield wavelets[level % 2]
 
 def _normalize_size_axis(approx, detail, axis):
-    """ Adjust the approximate coefficients' array size to that of the detail coefficients' array. """
+    """ 
+    Adjust the approximate coefficients' array size to that of the detail coefficients' array.
+    
+    Parameters
+    ---------- 
+    approx : ndarray
+    detail: ndarray
+    axis : int
+
+    Returns
+    -------
+    ndarray
+        Same shape as detail input.
+    """
     if approx.shape[axis] == detail.shape[axis]:
         return approx
     # Swap axes to bring the specific axis to front, truncate array, and re-swap.
