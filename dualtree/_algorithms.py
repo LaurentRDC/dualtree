@@ -67,7 +67,7 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
     # Since dualtree() only works on even-length signals, we might have to extend.
     original_shape = array.shape[-1]    # Valid for 1D signals
     if original_shape % 2 == 1:         # Odd length array
-        array = n.concatenate((array, array[-1]), axis = -1)
+        array = n.concatenate((array, [array[-1]]), axis = -1)
 
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
