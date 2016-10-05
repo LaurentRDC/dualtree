@@ -6,6 +6,7 @@ Author: Laurent P. René de Cotret
 import numpy as n
 from pywt import dwt, idwt, dwt_max_level
 from ._wavelets import dualtree_wavelet, dualtree_first_stage
+from warnings import warn
 
 __all__ = ['dualtree', 'idualtree', 'dualtree_max_level', 'approx_rec', 'detail_rec']
 
@@ -20,7 +21,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     Parameters
     ----------
     data: array_like
-        Input data. Only 1D arrays are supported for now. 2D support is planned.
+        Input data. Can be of any shape, but the transform can only be applied in 1D (i.e. along a single axis).
     first_stage : str, optional
         Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of suitable arguments
     wavelet : str, optional
@@ -47,6 +48,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     ------
     ValueError
         Raised if level < 0
+        Raised if axis argument is invalid (e.g. too large).
     
     Notes
     -----
@@ -62,7 +64,11 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
     data = n.asarray(data, dtype = n.float)/n.sqrt(2)
-    
+
+    # Check axis bounds
+    if axis > data.ndim - 1:
+        raise ValueError('Input array has {} dimensions, but input axis is {}'.format(data.ndim, axis))
+        
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dualtree_first_stage(first_stage)
 
@@ -253,7 +259,8 @@ def _normalize_size_axis(approx, detail, axis):
     if approx.shape[axis] == detail.shape[axis]:
         return approx
     # Swap axes to bring the specific axis to front, truncate array, and re-swap.
-    # This is an extension of approx = approx[:-1] for 1D, along an axis.
+    # This is an extension of the 1D case:
+    # >>> approx = approx[:-1] 
     return n.swapaxes( n.swapaxes(approx, axis, 0)[:-1] ,0, axis)
 
 def _single_tree_analysis(data, first_stage, wavelet, level, mode, axis):
@@ -306,9 +313,12 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis):
     # Determine the level except first stage:
     # The order of wavelets depends on whether
     # the level is even or odd.
-    level = len(coeffs) - 2
+    level = len(coeffs) - 1
     approx, detail_coeffs, first_stage_detail = coeffs[0], coeffs[1:-1], coeffs[-1]
-    for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level)):
+
+    # In the case of level = 1, coeffs[1:-1] is an empty list. Then, the following
+    # loop is not run since zip() iterates as long as the shortest iterable.
+    for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level + 1)):
         approx = _normalize_size_axis(approx, detail, axis = axis)
         approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode, axis = axis)
     
