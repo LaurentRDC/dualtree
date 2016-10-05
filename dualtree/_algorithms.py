@@ -57,12 +57,17 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
     References
     ----------
     [1] Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
-    """
+    """   
     array = n.asarray(array, dtype = n.float)
     if array.ndim == 2:
         raise NotImplementedError('2D baseline determination is planned but not supported.')
     elif array.ndim > 2:
         raise ValueError('{}D baseline determination is not supported.'.format(array.ndim))
+
+    # Since dualtree() only works on even-length signals, we might have to extend.
+    original_shape = array.shape[-1]    # Valid for 1D signals
+    if original_shape % 2 == 1:         # Odd length array
+        array = n.concatenate((array, [0]), axis = -1)
 
     if mask is None:
         mask = n.zeros_like(array, dtype = n.bool)
@@ -84,8 +89,10 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
         signal[signal > background] = background[signal > background]
     
     # The background should be identically 0 where the data points are invalid
-    background[mask] = 0  
-    return background
+    background[mask] = 0 
+
+    # Readjust size for odd input signals
+    return n.resize(background, new_shape = original_shape)
 
 def denoise(array, level = 1, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mask = None):
     """

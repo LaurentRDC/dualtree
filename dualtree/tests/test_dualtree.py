@@ -1,4 +1,4 @@
-from dualtree import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level
+from dualtree import dualtree, idualtree, approx_rec, detail_rec, dualtree_max_level, baseline
 from dualtree._wavelets import dualtree_wavelet, dualtree_first_stage, kingsbury99, kingsbury99_fs, ALL_QSHIFT, ALL_FIRST_STAGE, ALL_COMPLEX_WAV
 
 import numpy as n
@@ -86,7 +86,7 @@ class TestDualTree(object):
 
 class Test1D(TestDualTree, unittest.TestCase):
     def setUp(self):
-        self.array = n.random.random(size = (99,))
+        self.array = n.random.random(size = (100,))
 
 class Test2D(TestDualTree, unittest.TestCase):
     def setUp(self):
@@ -96,5 +96,13 @@ class Test3D(TestDualTree, unittest.TestCase):
     def setUp(self):
         self.array = n.random.random(size = (10,10,10))
 
+class TestBaseline(unittest.TestCase):
+    def setUp(self):
+        self.array = n.random.random(size = (99,))
+
+    def test_shape(self):
+        background = baseline(array = self.array, max_iter = 100)
+        self.assertTrue(self.array.shape == background.shape)
+    
 if __name__ == '__main__':
     unittest.main()

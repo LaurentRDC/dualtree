@@ -22,6 +22,7 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     ----------
     data: array_like
         Input data. Can be of any shape, but the transform can only be applied in 1D (i.e. along a single axis).
+        The length along the axis must be even.
     first_stage : str, optional
         Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of suitable arguments
     wavelet : str, optional
