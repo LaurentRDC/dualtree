@@ -1,4 +1,4 @@
- Copyright (c) 2016, Laurent P. René de Cotret
+Copyright (c) 2016, Laurent P. René de Cotret
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,9 @@ modification, are permitted provided that the following conditions are met:
 3. All advertising materials mentioning features or use of this software
    must display the reference below:
 
-   Laurent P. René de Cotret and Bradley J. Siwick. A general method for baseline-removal in ultrafast electron powder diffraction data      using the dual-tree complex wavelet transform. Structural Dynamics (accepted)
+   Laurent P. René de Cotret and Bradley J. Siwick. A general method for 
+   baseline-removal in ultrafast electron powder diffraction data using 
+   the dual-tree complex wavelet transform. Structural Dynamics (accepted 2016)
 
 4. The names of its contributors may not be used to endorse or promote products
    derived from this software without specific prior written permission.

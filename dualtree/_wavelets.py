@@ -2,6 +2,9 @@
 Extension of PyWavelets to complex wavelets suitable for the Dual-Tree Complex Wavelet Transform.
 
 Author : Laurent P. René de Cotret
+
+The wavelet coefficients are taken from Ivan Selesnick's Matlab code hosted at
+http://eeweb.poly.edu/iselesni/WaveletSoftware/
 """
 import numpy as n
 from os.path import join, dirname
