@@ -3,10 +3,10 @@ Dual-tree complex wavelet transform (DTCWT) module.
 
 Author: Laurent P. René de Cotret
 """
+from itertools import cycle
 import numpy as n
 from pywt import dwt, idwt, dwt_max_level
 from ._wavelets import dualtree_wavelet, dualtree_first_stage
-from warnings import warn
 
 __all__ = ['dualtree', 'idualtree', 'dualtree_max_level', 'approx_rec', 'detail_rec']
 
@@ -127,20 +127,21 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
     if len(coeffs) < 1:
-        raise ValueError(
-            "Coefficient list too short (minimum 1 array required).")
+        raise ValueError("Coefficient list too short, with {} elements (minimum 1 array required).".format(len(coeffs)))
     elif len(coeffs) == 1: # level 0 inverse transform
         real, imag = coeffs[0], coeffs[0]
     else:
         real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
         real_first, imag_first = dualtree_first_stage(first_stage)
 
-        real = _single_tree_synthesis(coeffs = [coeff.real for coeff in coeffs], first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), mode = mode, axis = axis)
-        imag = _single_tree_synthesis(coeffs = [coeff.imag for coeff in coeffs], first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), mode = mode, axis = axis)
+        real = _single_tree_synthesis(coeffs = [coeff.real for coeff in coeffs], first_stage = real_first, 
+                                      wavelet = (real_wavelet, imag_wavelet), mode = mode, axis = axis)
+        imag = _single_tree_synthesis(coeffs = [coeff.imag for coeff in coeffs], first_stage = imag_first, 
+                                      wavelet = (imag_wavelet, real_wavelet), mode = mode, axis = axis)
     
     return n.sqrt(2)*(real + imag)/2
 
-def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = DEFAULT_MODE, axis = -1, mask = None):
+def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = DEFAULT_MODE, axis = -1):
     """
     Approximate reconstruction of a signal/image using the dual-tree approach.
     
@@ -158,9 +159,6 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         Complex wavelet to use in late stages. See dualtree.ALL_COMPLEX_WAV for possible arguments.
     axis : int, optional
         Axis over which to compute the transform. Default is -1.
-    mask : ndarray or None, optional.
-        Same shape as array. Must evaluate to True where data is invalid.
-        If None (default), a trivial mask is used.
             
     Returns
     -------
@@ -174,7 +172,7 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = mode, axis = axis)
     return n.resize(reconstructed, new_shape = array.shape)
 
-def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, axis = -1, mask = None):
+def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, axis = -1):
     """
     Detail reconstruction of a signal/image using the dual-tree approach.
     
@@ -191,10 +189,6 @@ def detail_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         Complex wavelet to use in late stages. See dualtree.ALL_COMPLEX_WAV for possible arguments.
     axis : int, optional
         Axis over which to compute the transform. Default is -1.
-    mask : ndarray or None, optional.
-        Same shape as array. Must evaluate to True where data is invalid.
-        If None (default), a trivial mask is used.
-        
             
     Returns
     -------
@@ -225,22 +219,12 @@ def dualtree_max_level(data, first_stage, wavelet, axis = -1):
     axis : int, optional
         Axis over which to compute the transform. Default is -1
         
-    
     Returns
     -------
     max_level : int
     """
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     return dwt_max_level(data_len = data.shape[axis], filter_len = max([real_wavelet.dec_len, imag_wavelet.dec_len]))
-
-##############################################################################
-#           SINGLE TREE OF THE TRANSFORM
-
-def _altern_wavelet(wavelets, level = 1):
-    """ Generator yielding alternative wavelets for swapping at each stage. """
-    while True:
-        yield wavelets[(level + 1) % 2]
-        yield wavelets[level % 2]
 
 def _normalize_size_axis(approx, detail, axis):
     """ 
@@ -287,7 +271,7 @@ def _single_tree_analysis(data, first_stage, wavelet, level, mode, axis):
     """
     approx, first_detail = dwt(data = data, wavelet = first_stage, mode = mode, axis = axis)    
     coeffs_list = [first_detail]
-    for i, wav in zip(range(level - 1), _altern_wavelet(wavelet)):
+    for i, wav in zip(range(level - 1), cycle(wavelet)):
         approx, detail = dwt(data = approx, wavelet = wav, mode = mode, axis = axis)
         coeffs_list.append(detail)
     
@@ -303,7 +287,7 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis):
     ----------
     coeffs : list
     first_stage : Wavelet object
-    wavelet : 2-tuple of Wavelet object
+    wavelet : 2-tuple of Wavelet objects
     mode : str
     axis : int
 
@@ -317,9 +301,13 @@ def _single_tree_synthesis(coeffs, first_stage, wavelet, mode, axis):
     level = len(coeffs) - 1
     approx, detail_coeffs, first_stage_detail = coeffs[0], coeffs[1:-1], coeffs[-1]
 
+    # Set the right alternating order between real and imag wavelet
+    if level % 2 == 1:
+        wavelet = reversed(wavelet)
+        
     # In the case of level = 1, coeffs[1:-1] is an empty list. Then, the following
     # loop is not run since zip() iterates as long as the shortest iterable.
-    for detail, wav in zip(detail_coeffs, _altern_wavelet(wavelet, level + 1)):
+    for detail, wav in zip(detail_coeffs, cycle(wavelet)):
         approx = _normalize_size_axis(approx, detail, axis = axis)
         approx = idwt(cA = approx, cD = detail, wavelet = wav, mode = mode, axis = axis)
     

@@ -82,7 +82,7 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
             signal[index] = array[index]
         
         # Wavelet reconstruction using approximation coefficients
-        background = approx_rec(array = signal, level = level, first_stage = first_stage, wavelet = wavelet, mask = mask)
+        background = approx_rec(array = signal, level = level, first_stage = first_stage, wavelet = wavelet)
         
         # Modify the signal so it cannot be more than the background
         # This reduces the influence of the peaks in the wavelet decomposition
@@ -106,7 +106,7 @@ def denoise(array, level = 1, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAU
         Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
     wavelet : PyWavelet.Wavelet object or str, optional
         Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'db5'.
+        for available values.
     
     Returns
     -------
@@ -120,7 +120,7 @@ def denoise(array, level = 1, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAU
         If input array has dimension > 2
     """
     #TODO: automatically determine 'level' by iterating; if the array hasn't
-    # changed much at a certain level, go a level further?
+    #      changed much at a certain level, go a level further?
     array = n.asarray(array)
     if array.ndim == 2:
         raise NotImplementedError('2D array support is planned but not implemented.')
