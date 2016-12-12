@@ -7,10 +7,10 @@ with open(join(dirname(__file__), 'LICENSE.txt')) as license_file:
 
 setup(name = 'dualtree',
       version = '0.7',
-      description = 'Dual-tree complex wavelet transform',
+      description = 'Dual-tree complex wavelet transform and associated algorithms',
       author = 'Laurent P. René de Cotret',
       author_email = 'laurent.renedecotret@mail.mcgill.ca',
-      url = 'http://www.physics.mcgill.ca/siwicklab/',
+      url = 'http://www.physics.mcgill.ca/siwicklab/software.html',
       packages = ['dualtree', 'dualtree.tests'],
       install_requires = ['numpy', 'PyWavelets'],
       package_data = {'dualtree': ['*.txt'],

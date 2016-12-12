@@ -48,7 +48,6 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     Raises
     ------
     ValueError
-        Raised if level < 0
         Raised if axis argument is invalid (e.g. too large).
     
     Notes
@@ -66,24 +65,23 @@ def dualtree(data, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV,
     """
     data = n.asarray(data, dtype = n.float)/n.sqrt(2)
 
+    if level == 'max':
+        level = dualtree_max_level(data = data, first_stage = first_stage, wavelet = wavelet, axis = axis)
+    elif level == 0:
+        return [data]
+    
     # Check axis bounds
     if axis > data.ndim - 1:
         raise ValueError('Input array has {} dimensions, but input axis is {}'.format(data.ndim, axis))
         
     real_wavelet, imag_wavelet = dualtree_wavelet(wavelet)
     real_first, imag_first = dualtree_first_stage(first_stage)
-
-    if level == 'max':
-        level = dualtree_max_level(data = data, first_stage = first_stage, wavelet = wavelet, axis = axis)
-    elif level < 0:
-        raise ValueError('Invalid level value {}. Must be a nonnegative integer.'.format(level))
-    elif level == 0:
-        return [data]
     
     real_coeffs = _single_tree_analysis(data = data, first_stage = real_first, wavelet = (real_wavelet, imag_wavelet), level = level, mode = mode, axis = axis)
     imag_coeffs = _single_tree_analysis(data = data, first_stage = imag_first, wavelet = (imag_wavelet, real_wavelet), level = level, mode = mode, axis = axis)
 
     # Combine coefficients into complex form
+    # TODO: This is slow
     return [real + 1j*imag for real, imag in zip(real_coeffs, imag_coeffs)]
 
 def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_WAV, mode = DEFAULT_MODE, axis = -1):
@@ -127,7 +125,7 @@ def idualtree(coeffs, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAULT_CMP_W
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
     if len(coeffs) < 1:
-        raise ValueError("Coefficient list too short, with {} elements (minimum 1 array required).".format(len(coeffs)))
+        raise ValueError("Coefficient list too short with {} elements (minimum 1 array required).".format(len(coeffs)))
     elif len(coeffs) == 1: # level 0 inverse transform
         real, imag = coeffs[0], coeffs[0]
     else:
@@ -148,7 +146,7 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
     Parameters
     ----------
     array : array-like
-        Array to be decomposed. Currently, only 1D arrays are supported. 2D support is planned.
+        Array to be decomposed.
     level : int or 'max'
         Decomposition level. A higher level will result in a coarser approximation of
         the input array. If the level is higher than the maximum possible decomposition level,
@@ -166,7 +164,7 @@ def approx_rec(array, level, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAUL
         Approximated reconstruction of the input array.
     """
     coeffs = dualtree(data = array, first_stage = first_stage, wavelet = wavelet, level = level, mode = mode, axis = axis)
-    app_coeffs, det_coeffs = coeffs[0], coeffs[1:]
+    app_coeffs, *det_coeffs = coeffs        # Python 3 only
     
     det_coeffs = [n.zeros_like(det, dtype = n.complex) for det in det_coeffs]
     reconstructed = idualtree(coeffs = [app_coeffs] + det_coeffs, first_stage = first_stage, wavelet = wavelet, mode = mode, axis = axis)

@@ -93,7 +93,7 @@ def dualtree_first_stage(wavelet = 'kingsbury99_fs'):
     # Shift deconstruction filters to one side, and reconstruction
     # to the other side
     shifted_fb = [n.array(f, copy = True) for f in wavelet.filter_bank]
-    for filt in shifted_fb[::2]:    #Deconstruction filters
+    for filt in shifted_fb[::2]:    # Deconstruction filters
         filt = n.roll(filt, 1)
     for filt in shifted_fb[2::]:    # Reconstruction filters
         filt = n.roll(filt, -1)
