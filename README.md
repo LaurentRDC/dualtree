@@ -1,6 +1,9 @@
 # dualtree
-
 Python package, based on PyWavelets, implementing Nick Kingsbury's dual-tree complex wavelet transform.
+
+The purpose of implementing the dual-tree complex wavelet transform was for it's use in baseline-removal of digital signals. This package is provided as part of the research published in the following article:
+
+- L. P. René de Cotret and B. J. Siwick, <i>A general method for baseline-removal in ultrafast electron powder diffraction data using the dual-tree complex wavelet transform</i>, Struct. Dyn. 4 (2016) DOI: 10.1063/1.4972518.
 
 ## Contents
 
@@ -21,8 +24,7 @@ Maximal decomposition level of the dual-tree complex wavelet transform.
 Baseline determination of signals using the dual-tree complex wavelet transform. Modified algorithm
 from [2].
 
-### denoise
-Denoising of signals using the dual-tree complex wavelet transform.
+### denoiseDenoising of signals using the dual-tree complex wavelet transform.
 
 ### dualtree_wavelet
 Pair of real and imaginary wavelet that forms a complex wavelet appropriate for the dual-tree
@@ -53,6 +55,9 @@ Example of algorithm (baseline-determination) on a NumPy array:
     >>> background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
     >>> plt.plot(signal, '.k', background, '.r')
 
+## Baseline-removal
+
+
 ## TODO
 
 There are a few things left to do before hitting version 1.0:
@@ -63,6 +68,6 @@ There are a few things left to do before hitting version 1.0:
 
 ## References
 
-1. Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
+1. Selesnick, I. W. et al. <i>The Dual-tree Complex Wavelet Transform</i>, IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
 
-2. Galloway et al. 'An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms', Applied Spectroscopy pp. 1370 - 1376, September 2009.
+2. Galloway et al. <i>An Iterative Algorithm for Background Removal in Spectroscopy by Wavelet Transforms</i>, Applied Spectroscopy pp. 1370 - 1376, September 2009.
