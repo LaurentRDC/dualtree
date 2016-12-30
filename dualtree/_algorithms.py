@@ -22,9 +22,11 @@ def baseline(array, max_iter, level = 'max', first_stage = DEFAULT_FIRST_STAGE, 
         Decomposition level. A higher level will result in a coarser approximation of
         the input signal (read: a lower frequency baseline). If 'max' (default), the maximum level
         possible is used.
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values. Default is 'sym6'.
+    first_stage : str, optional
+        Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of suitable arguments
+    wavelet : str, optional
+        Wavelet to use in stages > 1. Must be appropriate for the dual-tree complex wavelet transform.
+        See dualtree.ALL_COMPLEX_WAV for possible
     background_regions : list, optional
         Indices of the array values that are known to be purely background. Depending
         on the dimensions of array, the format is different:
@@ -104,9 +106,11 @@ def denoise(array, level = 1, first_stage = DEFAULT_FIRST_STAGE, wavelet = DEFAU
         Data with background. 2D array support is in the works.
     level : int, optional
         Decomposition level. Higher level means that lower frequency noise is removed. Default is 1
-    wavelet : PyWavelet.Wavelet object or str, optional
-        Wavelet with which to perform the algorithm. See PyWavelet documentation
-        for available values.
+    first_stage : str, optional
+        Wavelet to use for the first stage. See dualtree.ALL_FIRST_STAGE for a list of suitable arguments
+    wavelet : str, optional
+        Wavelet to use in stages > 1. Must be appropriate for the dual-tree complex wavelet transform.
+        See dualtree.ALL_COMPLEX_WAV for possible
     
     Returns
     -------
