@@ -170,6 +170,8 @@ def dualtree2d(data, wavelet = DEFAULT_CMP_WAV, level = 'max', mode = DEFAULT_MO
     ----------
     [1] Selesnick, I. W. et al. 'The Dual-tree Complex Wavelet Transform', IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
     """
+    raise NotImplementedError
+    
     data = n.asarray(data, dtype = n.float)
 
     if level == 'max':
