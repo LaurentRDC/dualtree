@@ -6,7 +6,7 @@ with open(join(dirname(__file__), 'LICENSE.txt')) as license_file:
     lic = license_file.read().replace('\n', '')
 
 setup(name = 'dualtree',
-      version = '0.7.5',
+      version = '0.7.6',
       description = 'Dual-tree complex wavelet transform and associated algorithms',
       author = 'Laurent P. René de Cotret',
       author_email = 'laurent.renedecotret@mail.mcgill.ca',
