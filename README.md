@@ -57,17 +57,6 @@ Example of algorithm (baseline-determination) on a NumPy array:
     >>> background = baseline(signal, wavelet = 'qshift3', max_iter = 100)  # Might not be optimal parameters
     >>> plt.plot(signal, '.k', background, '.r')
 
-## Baseline-removal
-
-
-## TODO
-
-There are a few things left to do before hitting version 1.0:
-
-1. Implementation beyond 1D: the dualtree and idualtree functions have to be implemented for 2D images.
-
-2. Algorithms: a more robust denoising algorithm should be implemented.
-
 ## References
 
 1. Selesnick, I. W. et al. <i>The Dual-tree Complex Wavelet Transform</i>, IEEE Signal Processing Magazine pp. 123 - 151, November 2005.
