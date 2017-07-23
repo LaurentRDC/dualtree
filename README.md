@@ -1,5 +1,4 @@
-.. warning::
-        *This package has been integrated in [scikit-ued](https://www.github.com/LaurentRDC/scikit-ued).*
+**ANNOUNCEMENT: This package has been integrated in [scikit-ued](https://www.github.com/LaurentRDC/scikit-ued). Improvements made in scikit-ued's baseline subpackage will not be backported to dualtree** 
 
 # dualtree
 Python package, based on PyWavelets, implementing Nick Kingsbury's dual-tree complex wavelet transform.
