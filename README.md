@@ -1,11 +1,12 @@
+.. warning::
+        *This package has been integrated in [scikit-ued](https://www.github.com/LaurentRDC/scikit-ued).*
+
 # dualtree
 Python package, based on PyWavelets, implementing Nick Kingsbury's dual-tree complex wavelet transform.
 
 The purpose of implementing the dual-tree complex wavelet transform was for it's use in baseline-removal of digital signals. This package is provided as part of the research published in the following article:
 
 - L. P. René de Cotret and B. J. Siwick, <i>A general method for baseline-removal in ultrafast electron powder diffraction data using the dual-tree complex wavelet transform</i>, Struct. Dyn. 4 (2017) DOI: 10.1063/1.4972518.
-
-*This package has been integrated in [scikit-ued](https://www.github.com/LaurentRDC/scikit-ued).*
 
 ## Contents
 
